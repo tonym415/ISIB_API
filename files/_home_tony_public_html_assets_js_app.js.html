@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>/home/tony/public_html/assets/js/app.js</title>
+    <link rel="stylesheet" href="http://yui.yahooapis.com/3.9.1/build/cssgrids/cssgrids-min.css">
+    <link rel="stylesheet" href="../assets/vendor/prettify/prettify-min.css">
+    <link rel="stylesheet" href="../assets/css/main.css" id="site_styles">
+    <link rel="icon" href="../assets/favicon.ico">
+    <script src="http://yui.yahooapis.com/combo?3.9.1/build/yui/yui-min.js"></script>
+</head>
+<body class="yui3-skin-sam">
+
+<div id="doc">
+    <div id="hd" class="yui3-g header">
+        <div class="yui3-u-3-4">
+                <h1><img src="../assets/css/logo.png" title="" width="117" height="52"></h1>
+        </div>
+        <div class="yui3-u-1-4 version">
+            <em>API Docs for: </em>
+        </div>
+    </div>
+    <div id="bd" class="yui3-g">
+
+        <div class="yui3-u-1-4">
+            <div id="docs-sidebar" class="sidebar apidocs">
+                <div id="api-list">
+                    <h2 class="off-left">APIs</h2>
+                    <div id="api-tabview" class="tabview">
+                        <ul class="tabs">
+                            <li><a href="#api-classes">Classes</a></li>
+                            <li><a href="#api-modules">Modules</a></li>
+                        </ul>
+                
+                        <div id="api-tabview-filter">
+                            <input type="search" id="api-filter" placeholder="Type to filter APIs">
+                        </div>
+                
+                        <div id="api-tabview-panel">
+                            <ul id="api-classes" class="apis classes">
+                                <li><a href="../classes/app/appLib.contentMode.html">app/appLib.contentMode</a></li>
+                                <li><a href="../classes/app/appLib.defaults.html">app/appLib.defaults</a></li>
+                                <li><a href="../classes/app/appLib.steps.html">app/appLib.steps</a></li>
+                                <li><a href="../classes/app/appLib.stepsOrientation.html">app/appLib.stepsOrientation</a></li>
+                                <li><a href="../classes/app/appLib.transitionEffect.html">app/appLib.transitionEffect</a></li>
+                            </ul>
+                
+                
+                            <ul id="api-modules" class="apis modules">
+                                <li><a href="../modules/app.html">app</a></li>
+                                <li><a href="../modules/feedback.html">feedback</a></li>
+                                <li><a href="../modules/game.html">game</a></li>
+                                <li><a href="../modules/signup.html">signup</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="yui3-u-3-4">
+                <div id="api-options">
+                    Show:
+                    <label for="api-show-inherited">
+                        <input type="checkbox" id="api-show-inherited" checked>
+                        Inherited
+                    </label>
+            
+                    <label for="api-show-protected">
+                        <input type="checkbox" id="api-show-protected">
+                        Protected
+                    </label>
+            
+                    <label for="api-show-private">
+                        <input type="checkbox" id="api-show-private">
+                        Private
+                    </label>
+                    <label for="api-show-deprecated">
+                        <input type="checkbox" id="api-show-deprecated">
+                        Deprecated
+                    </label>
+            
+                </div>
+            
+            <div class="apidocs">
+                <div id="docs-main">
+                    <div class="content">
+<h1 class="file-heading">File: /home/tony/public_html/assets/js/app.js</h1>
+
+<div class="file">
+    <pre class="code prettyprint linenums">
+/**
+ * @fileoverview
+ * This module sets up a global object used in the application
+ * It also has the global non page-specific setup for the site pages
+ * I contains function for:
+ * - banner creation and event linking
+ *
+ * Places of interest as of 24Jan16
+ *   - See {@link module:app/appLib} for all &quot;lib&quot; interaction
+ *    - [Navigation Bar]{@link module:app~loginNavBar}
+ * @module app
+ * @return {Object} object with specific initialization and data handling for ISIB
+ */
+define([
+    &#x27;jquery&#x27;,
+    &#x27;appLib&#x27;,
+    &#x27;cookie&#x27;,
+    &#x27;blockUI&#x27;,
+    &#x27;jqueryUI&#x27;,
+    &#x27;validate&#x27;,
+    &#x27;tooltipster&#x27;], function($, lib){
+    var app,
+        objCategories = {},
+        testBtnDialog,
+        defaultTheme = &#x27;ui-lightness&#x27;,
+        app_engine = &quot;cgi-bin/engine.py&quot;,
+        default_avatar = &#x27;assets/css/images/anon_user.png&#x27;,
+        selectMenuOpt = { width: &#x27;65%&#x27;},
+        tabOptions = {
+            active: false,
+            collapsible: true,
+            heightStyle: &#x27;content&#x27;,
+            hide: { effect: &quot;explode&quot;, duration: 1000 },
+            show: { effect: &quot;slide&quot;, duration: 800 }
+        };
+
+    /**
+     * @method init
+     * @desc Initialization function for all pages
+     * @param  {string} page code name for current pages
+     * @return {boolean} If true show the login window
+     */
+    var init = function(page){
+        var returnValue,
+            showLogin = false;
+        // if not logged in send to login page
+        user = this.getCookie(&#x27;user&#x27;);
+        this.currentPage = page;
+
+        // ensure player is logged in
+        showLogin = this.ensureLogin(page, user);
+
+        //  Initalize app setup functions
+        this.setTheme();
+        this.navBar(page);
+
+        // show active page
+        $(&#x27;.main-nav li&#x27;).removeClass();
+        $(&#x27;#&#x27; + page).addClass(&#x27;ui-state-active pageLinks&#x27;);
+
+        // page specific initialization
+        switch (page) {
+            case &#x27;home&#x27;:
+                $(&#x27;.signin-message&#x27;).toggle((user === undefined));
+                $(&quot;#reset-tab&quot;).toggle();
+                returnValue = showLogin;
+                break;
+            case &#x27;game&#x27;:
+                $(&quot;.sel&quot;).selectmenu(selectMenuOpt);
+                // load category selectmenu
+                this.getCategories();
+                this.accordion = $(&quot;#accordion&quot;).accordion({ heightStyle: &#x27;content&#x27;, collapsable: true});
+                $(&quot;#debateResults&quot;).toggle();
+                // create counter for sub-category templates
+                $(document).data(&quot;tempCount&quot;,0);
+
+                // hide result pane till necessary
+                $(&#x27;.debateVote&#x27;).toggle();
+                $(&#x27;#gameWait&#x27;).toggle();
+                $(&#x27;h3:contains(&quot;Game Results&quot;)&#x27;).toggle();
+                $(&quot;h3:contains(&#x27;Pre Game&#x27;)&quot;).toggle();
+
+                // create param tabs
+                $(&#x27;#paramOptions&#x27;).tabs(tabOptions);
+                break;
+            case &#x27;admin&#x27;:
+                // load category selectmenu
+                this.getCategories();
+                $(&#x27;select&#x27;).selectmenu(selectMenuOpt);
+                // create counter for sub-category templates
+                $(document).data(&quot;tempCount&quot;,0);
+                break;
+            case &#x27;feedback&#x27;:
+                optCategory = {
+                    change: function(){
+                        // validate select
+                        $(this).closest(&#x27;form&#x27;).validate().element(this);
+                    }
+                };
+                settings = $.extend({}, selectMenuOpt, optCategory);
+                $(&quot;.sel&quot;).selectmenu(settings);
+                $(&quot;input&quot;).not(&#x27;[type=submit]&#x27;).width(&#x27;110%&#x27;);
+                break;
+            default:
+
+        }
+
+        // jquery-fy page with Page Stylings
+        $(&quot;input[type=submit]&quot;).button();
+        $(&quot;input[type=button]&quot;).button();
+
+        // final page setup
+        // add event listener for logout
+        this.logout();
+        this.setFooter();
+        this.rankInfo();
+        // initialize agreement module
+        this.agreement();
+        return returnValue;
+    };
+
+    /**
+     * @method ensureLogin
+     * @desc Use window location information to determine if login flag is needed
+     */
+    function ensureLogin(page, user){
+        locParams = window.location;
+        paths = locParams.pathname.split(&#x27;/&#x27;);
+        webPage = paths[paths.length - 1];
+        search = locParams.search.split(&#x27;?&#x27;)[1];
+        showLogin = (webPage === this.pages.home &amp;&amp; search !== undefined);
+
+        // pages allowed to be viewed without logging in
+        allowedPages = [&#x27;home&#x27;, &#x27;feedback&#x27;, &#x27;about&#x27;];
+        // is current page on the VIP list?
+        if (-1 == $.inArray(page, allowedPages) &amp;&amp; !showLogin){
+            // set location to home page with login flag
+            if (user === undefined) window.location.assign(this.pages.home + &quot;?true&quot;);
+        }
+        return showLogin;
+    }
+
+
+    /**
+     * @method setFooter
+     * @desc Universal function to create the footer
+     * Uses template string from library to load footer {@link module:app/appLib~getFooterText}
+     */
+    function setFooter(){
+        // NOTE: ids/classes are important progmatically (caution when changing)
+        // wrap the content of the body with a container and wrap that with container to accomodate the footer stylings
+        $(&#x27;body&#x27;).wrapInner(&quot;&lt;div id=&#x27;content&#x27;&gt;&lt;/div&gt;&quot;);
+        $(&#x27;#content&#x27;).wrap(&#x27;&lt;div id=&quot;container&quot; /&gt;&#x27;);
+        $(&#x27;&lt;div class=&quot;footer&quot;&gt; &lt;/div&gt;&#x27;)
+            .addClass(&#x27;ui-state-default&#x27;)
+            .html(lib.getFooterText())
+            .prepend( $(&#x27;&lt;div class=&quot;test&quot; /&gt;&#x27;) )
+            .insertAfter(&#x27;#container&#x27;);
+    }
+
+    /**
+     *   * Shows test buttons for the current page if any
+     *
+    */
+    function toggleTestButtons(){
+        btnContainer = $(&#x27;#btnTest&#x27;);
+
+        if (btnContainer.length &gt; 0){
+            // create test button dialog
+              if (testBtnDialog === undefined){
+                  btnContainer.toggleClass(&#x27;no-display&#x27;);
+                  $(&#x27;.test&#x27;).html(&quot;TEST TOGGLE&quot;);
+                  testBtnDialog = btnContainer.dialog({
+                      title: &quot;Test Buttons&quot;,
+                      dialogClass: &#x27;no-close&#x27;,
+                      height: 200,
+                      width: 800,
+                      modal: true,
+                      hide: { effect: &quot;fade&quot;, duration: 300 },
+                      show: { effect: &quot;fade&quot;, duration: 300 },
+                      buttons: [{
+                          text: &#x27;Close&#x27;,
+                          click: function() {
+                              $(this).dialog(&#x27;close&#x27;);
+                              $(&#x27;.test&#x27;).html(&quot;&quot;);
+                              }
+                      }]
+                  });
+            }else{
+                testBtnDialog.dialog(&#x27;open&#x27;);
+            }
+        }
+    }
+
+    /**
+     * @method agreement
+     * @desc Shows agreement window
+     */
+    function agreement(){
+        // make sure rules are read before &#x27;agreeing&#x27;
+        $(&#x27;.rules&#x27;).scroll(function(){
+            if ($(this).scrollTop() + $(this).innerHeight() + 2 &gt;= $(this)[0].scrollHeight){
+                $(&#x27;#rulesChk&#x27;).prop(&#x27;disabled&#x27;, false);
+                $(&#x27;#rulesChk&#x27;).prop(&#x27;checked&#x27;, true);
+            }
+        });
+
+        $(&#x27;.agreement_close&#x27;).click(function(){
+            event.preventDefault();
+            $.unblockUI();
+        });
+
+        $(&#x27;.agreement&#x27;).click(function(){
+            event.preventDefault();
+            // open rules
+            $.blockUI({
+                fadeIn: 1000,
+                css: {
+                    top:  ($(window).height() - 500) /2 + &#x27;px&#x27;,
+                    left: ($(window).width() - 500) /2 + &#x27;px&#x27;,
+                    width: &#x27;500px&#x27;
+                },
+                message: $(&#x27;.agreement_text&#x27;),
+                onOverlayClick: $.unblockUI
+            });
+        });
+    }
+
+    /**
+     * @method showRanking
+     * @desc Build rankings element
+     */
+    function showRanking(){
+        if ($(&#x27;div#ranks&#x27;).length === 0) {
+            $(&#x27;.footer&#x27;)
+                .append(
+                    $(&#x27;&lt;div id=&quot;ranks&quot; /&gt;&#x27;)
+                        .append(
+                            $(&#x27;&lt;div /&gt;&#x27;)
+                                .addClass(&#x27;center-content&#x27;)
+                                .append(&#x27;&lt;h1&gt;Rank Description&lt;/h1&gt;&#x27;)
+                                .append(&#x27;&lt;dl /&gt;&#x27;)
+                    )
+                );
+
+            $.each(lib.skillLevels,function(idx, value){
+                $(&#x27;#ranks dl&#x27;)
+                        .append(
+                            $(&#x27;&lt;dt /&gt;&#x27;)
+                                .append(
+                                    $(&#x27;&lt;img src=&quot;/assets/css/images/trans1.png&quot; /&gt;&#x27;)
+                                        .removeClass()
+                                        .addClass(&#x27;star&#x27; + (1 + idx)),
+                                    $(&#x27;&lt;span&gt;&#x27; + value.title + &#x27;&lt;/span&gt;&#x27;)
+                                )
+                        )
+                        .append(
+                            $(&#x27;&lt;dd /&gt;&#x27;)
+                                .html(value.description)
+                        );
+            });
+
+            // let the user know that 0 stars and 1/2 star are equal rank
+            $(&#x27;dt:first&#x27;)
+                .prepend(
+                    $(&#x27;&lt;img src=&quot;/assets/css/images/trans1.png&quot; /&gt;&#x27;)
+                        .removeClass()
+                        .addClass(&#x27;star0&#x27;)
+                    ,$(&#x27;&lt;br /&gt;&#x27;)
+                )
+
+
+            $(&#x27;#ranks&#x27;)
+                .append(&quot;&lt;a class=&#x27;rank_close&#x27; href=&#x27;#&#x27;&gt;Close this dialog&lt;/a&gt;&quot;);
+
+            $(&#x27;.rank_close&#x27;).click(function(){
+                event.preventDefault();
+                $.unblockUI();
+                $(&#x27;#ranks&#x27;).remove();
+            });
+        }
+        $(&#x27;#ranks&#x27;).toggle(false);
+        return $(&#x27;#ranks&#x27;);
+    }
+
+    /**
+     * @method rankInfo
+     * @desc Display rank info
+     */
+    function rankInfo(){
+        $(&#x27;.rankInfo&#x27;).click(function(){
+            event.preventDefault();
+            // open rank info
+            $.blockUI({
+                fadeIn: 1000,
+                css: {
+                    top:  ($(window).height() - 600) /2 + &#x27;px&#x27;,
+                    left: ($(window).width() - 500) /2 + &#x27;px&#x27;,
+                    width: &#x27;500px&#x27;
+                },
+                message: showRanking(),
+                onOverlayClick: function(){
+                    $.unblockUI();
+                    $(&#x27;#ranks&#x27;).remove();
+                }
+            });
+        });
+    }
+
+    /**
+     * @method getAvatar
+     * @param {string} avFilespec Name of file
+     * @returns {string} Fully file specification of avatar
+     */
+    function getAvatar(avFilespec){
+        if (avFilespec === undefined){
+            info = getCookie(&#x27;user&#x27;);
+            return (info.avatar) ? &#x27;/assets/avatars/&#x27; + info.avatar : default_avatar;
+        }else{
+            return (avFilespec !== &quot;&quot;) ? &#x27;/assets/avatars/&#x27; + avFilespec : default_avatar;
+        }
+    }
+
+    /**
+     * @method logout
+     * @desc Logout
+     */
+    function logout(){
+        app = this;
+        $(&#x27;.logout&#x27;).on(&#x27;click&#x27;, function(e){
+            e.preventDefault();
+            $.removeCookie(&#x27;user&#x27;);
+            window.location.assign(app.pages.home);
+        });
+    }
+
+    /**
+     * @method loginNavBar
+     * @param {string} page Page key from library
+     * @desc Uses parameter to appropriately set the navigation bar
+     * See {@link module:app/appLib~navPages} for param (page) reference
+     */
+    var loginNavBar = function(page){
+        // logged in user
+        app = this;
+        info = app.getCookie(&#x27;user&#x27;);
+        /**  */
+        for(var key in lib.navPages){
+            // don&#x27;t show links if not logged in
+            if (info === undefined){
+                if (key == &#x27;profile&#x27;) $(&#x27;#&#x27; + key).toggle();
+                if (key == &#x27;admin&#x27;)  $(&#x27;#&#x27; + key).toggle();
+                if (key == &#x27;game&#x27;)  $(&#x27;#&#x27; + key).toggle();
+            }else{
+                // don&#x27;t show admin to reg user
+                if (key == &#x27;admin&#x27; &amp;&amp; info.role == &#x27;user&#x27;)  $(&#x27;#&#x27; + key).toggle();
+                if (key == &#x27;registration&#x27;)  $(&#x27;#&#x27; + key).toggle();
+            }
+        }
+
+        if (info){
+            // hide signin/signup
+            $(&#x27;.cd-signin, .cd-signup&#x27;).toggle();
+            // if (page === &#x27;home&#x27;) return false;
+            userSpan = &quot;&lt;span id=&#x27;welcome&#x27; class=&#x27;ui-widget&#x27;&gt;Welcome, &lt;a href=&#x27;&quot; +  lib.navPages.profile + &quot;&#x27;&gt;   &quot;  + info.username  ;
+            userSpan += &quot;&lt;img src=&#x27;&quot; + getAvatar() + &quot;&#x27; title=&#x27;Edit &quot; + info.username + &quot;&#x27; class=&#x27;avatar_icon&#x27;&gt;&lt;/a&gt;&quot;;
+            userSpan += &quot;&lt;br /&gt;&lt;span class=&#x27;skill_level ui-widget&#x27;&gt;&lt;span class=&#x27;skill_level_text rankInfo&#x27;&gt;Level&lt;/span&gt;:&lt;img src=&#x27;/assets/css/images/trans1.png&#x27; class=&#x27;&#x27;&gt;&lt;/span&gt;&lt;/span&gt;&quot;;
+            $(&quot;header&quot;).after(userSpan);
+
+            // show skills
+            this.showSkills();
+        }else{
+            $(&#x27;.logout&#x27;).toggle();
+        }
+    };
+
+    /**
+     * @method showSkills
+     * @desc Show user rank
+     */
+    var showSkills = function(){
+        user = this.getCookie(&#x27;user&#x27;);
+        data = {};
+        data.user_id = user.user_id;
+        data.id = &#x27;tr&#x27;;
+        data.function = &#x27;TRU&#x27;;
+        $.ajax({
+            desc: &#x27;Get TrackRecord&#x27;,
+            data: data,
+            type: &quot;POST&quot;,
+            url: app_engine
+            })
+            .done(function(data, textStatus, jqXHR){
+                data = data[0];
+                wins = data.wins;
+                losses = data.losses;
+                sumGames = wins + losses;
+                winPct = wins / sumGames;
+                winPct = (isNaN(winPct)) ? 0 : winPct;
+                rate_level = parseInt(Math.ceil(winPct * 10));
+                rate_class = &#x27;star&#x27; + rate_level;
+                $(&#x27;.skill_level img&#x27;).removeClass().addClass(rate_class);
+                $(&#x27;.skill_level_text&#x27;).html(getLevelName(winPct * 100));
+        });
+    };
+
+    /**
+     * @method getLevelName
+     * @param {number} val
+     * @desc Base on this param, this function returns the correct skill level title using the [skillLevel object]{@link module:app/appLib~skillLevels}
+     */
+    function getLevelName(val){
+        // get the index of the skill level name
+        idx = val % 100 / 10 | 0;
+        return lib.skillLevels[idx].title;
+    }
+
+    /**
+     * @method loading
+     * @param {string} msg Message string
+     */
+    var loading = function(msg){
+        loadingImg = &#x27;&lt;img src=&quot;assets/css/images/loading.gif&quot; /&gt;&#x27;;
+        loadingHtml = &#x27; &lt;h3&gt;We are processing your request.  Please be patient.&lt;/h3&gt;&#x27;;
+        msg =  (msg === undefined) ?  loadingImg + loadingHtml : loadingImg + msg;
+        $.blockUI({message: msg});
+    };
+
+    /**
+     * @method unloading
+     * @desc Unblock the ui
+     */
+    var unloading = function(element){
+        var data = $(window).data();
+
+        if (data[&#x27;blockUI.isBlocked&#x27;] == 1) {
+            $(&#x27;#content&#x27;).unblock();
+        }
+        $.unblockUI();
+    };
+
+    /**
+     * @desc Adds loading message to all ajax calls by default
+     */
+    $(document)
+        .ajaxStart(function(event, xhr, options) {
+            loading();
+        })
+        .ajaxComplete(function(event, xhr, options) {
+            // if options.function == logger or utility...don&#x27;t log
+            if (options.function === undefined){
+                // if (options.desc === undefined) return false;
+                user = getCookie(&quot;user&quot;);
+                if (typeof(options.data) === &#x27;object&#x27;) options.data = JSON.stringify(options.data);
+                data = {
+                    &#x27;function&#x27;: &#x27;LOG&#x27;,
+                    &#x27;user_id&#x27;: (user === undefined) ? 0 : user.user_id,
+                    &#x27;description&#x27;: options.desc || &#x27;utility function&#x27;,
+                    &#x27;action&#x27; : options.data || &#x27;utility data&#x27;,
+                    &#x27;result&#x27; : xhr.responseText,
+                    &#x27;detail&#x27; : options.url + &quot; | &quot; + xhr.status + &quot; | &quot; + xhr.statusText
+                };
+                // log event
+                $.ajax({
+                    contentType: &quot;application/x-www-form-urlencoded&quot;,
+                    function: &#x27;logger&#x27;,
+                    data: data,
+                    type: &quot;POST&quot;,
+                    url: app_engine
+                    })
+                    .done(function(data, textStatus, jqXHR){
+                        // NOTE: comment line below for production
+                        // console.log(&quot;Logged data: &quot; + JSON.stringify(data, null, 4));
+                    })
+                    .fail(function(jqXHR, textStatus, errorThrown) { console.log(&#x27;log request failed! &#x27; + textStatus); })
+                    .always(function() { return false; });
+            }
+            unloading();
+        })
+        .ajaxError(function(event, xhr, options) {
+            unloading();
+        });
+
+    /**
+     * sets cookies with info
+     * @method setCookie
+     * @param {string} name Cookie name
+     * @param {object} data Cookie data
+     */
+     function setCookie(name, data){
+        $.cookie.json = true;
+        $.removeCookie(name);
+
+        // remove default theme and use user theme
+        if (name == &#x27;user&#x27;) $.removeCookie(&#x27;theme&#x27;);
+
+        $.cookie(name, data);
+     }
+
+     /**
+      * @method setTheme
+      * @param {string} theme JQuery ui theme string
+      */
+     function setTheme(theme){
+        // if no theme sent set default
+        var cook_theme;
+        uObj = getCookie(&#x27;user&#x27;);
+        if (typeof(uObj) !== &quot;undefined&quot;) cook_theme = uObj.theme;
+
+        if (theme === undefined){
+            theme = (cook_theme === undefined) ? defaultTheme : cook_theme;
+        }
+
+        theme = theme.replace(/[&#x27;&quot;]+/g,&#x27;&#x27;);
+        // refresh cookie
+        $.removeCookie(&quot;theme&quot;);
+        $.cookie(&quot;theme&quot;, theme);
+
+        cook_theme = $.cookie(&#x27;theme&#x27;);
+        var theme_url = &quot;http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.6/themes/&quot; + theme + &quot;/jquery-ui.css&quot;;
+        $(&#x27;head&#x27;).append(&#x27;&lt;link href=&quot;&#x27;+ theme_url +&#x27;&quot; rel=&quot;Stylesheet&quot; type=&quot;text/css&quot; /&gt;&#x27;);
+    }
+
+    /**
+     * gets cookies info
+     * @method getCookie
+     * @param {string} name Cookie name
+     */
+     function getCookie(name){
+        $.cookie.json = true;
+        return $.cookie(name);
+     }
+
+     function pprint(obj){
+        return &quot;&lt;pre&gt;&quot; + JSON.stringify(obj, null, 2) + &quot;&lt;/pre&gt;&quot;;
+     }
+
+    /**
+     * Determines of an object is empty
+     * @return {Boolean} [description]
+     */
+    function isEmpty(obj){
+        length = Object.getOwnPropertyNames(obj).length;
+        return  length &gt; 0 ? false : true;
+     }
+    var getCategories = function(){
+        app = this;
+        $.ajax({
+            contentType: &quot;application/x-www-form-urlencoded&quot;,
+            function: &#x27;utility&#x27;,
+            data: {&#x27;function&#x27; : &#x27;GC&#x27;},
+            type: &quot;POST&quot;,
+            url: app_engine
+        })
+        .done(function(result, status, jqXHR){
+            if (typeof(result) === &#x27;string&#x27;){
+                isHTML = /&lt;(?=.*? .*?\/ ?&gt;|br|hr|input|!--|wbr)[a-z]+.*?&gt;|&lt;([a-z]+).*?&lt;\/\1&gt;/i.test(result);
+                if (isHTML){
+                    app.dMessage(&#x27;Error&#x27;, jqXHR.getAllResponseHeaders());
+                }else{
+                    result = JSON.parse(result)[0];
+                }
+            }
+            // internal error handling
+            if (result.error !== undefined){
+                console.log(result.error);
+                return result;
+            }else{
+                app.objCategories = result.categories;
+                loadCategories(app.objCategories);
+            }
+        })
+        .fail(function(jqXHR, textStatus, errorThrown) {
+            app.dMessage(textStatus + &#x27;: request failed! &#x27;, errorThrown);
+            console.log(textStatus + &#x27;: request failed! &#x27; + errorThrown);
+        });
+    };
+
+     /**
+     * loads categories into appropriate selectmenu
+     * @param  {object} categories object containing all category data
+     * @return none
+     */
+    var loadCategories = function(objCategories){
+        if (objCategories === undefined) {
+            getCategories();
+            return false;
+        }
+        // get all &quot;Category&quot; select menus
+        menus = $(&#x27;select[id$=Category]&#x27;).not(&#x27;[id*=Sub]&#x27;).not(&#x27;[id*=temp]&#x27;);
+        $.each(menus, function(){
+            $(this)
+                .empty()
+                .append(new Option(&quot;None&quot;, &quot;&quot;));
+            element = $(this);
+            $.each(objCategories, function(idx, objCat){
+                parentID = objCat.parent_id;
+                cat = objCat.category;
+                id = objCat.category_id;
+                if (element.hasClass(&#x27;allCategories&#x27;)){
+                    // do not filter categories
+                    element.append(new Option(cat, id));
+                }else{
+                    // get top level categories
+                    if (parentID === 0){
+                        element.append(new Option(cat, id));
+                    }
+                }
+            });
+            $(this).selectmenu().selectmenu(&quot;refresh&quot;, true);
+        });
+
+    };
+
+
+    /**
+     * @method getCatQuestions
+     * @param {int} catID Category ID
+     * @param {int} elementID Category ID
+     *
+     */
+    var getCatQuestions = function(catID, elementID){
+        app = this;
+        if (catID === &quot;&quot;) return false;
+        qList = $(elementID);
+        data = {&#x27;function&#x27; : &#x27;GQ&#x27;};
+        data.category_id = catID;
+        $.ajax({
+            contentType: &quot;application/x-www-form-urlencoded&quot;,
+            function: &#x27;utility&#x27;,
+            data: data,
+            type: &quot;POST&quot;,
+            url: app_engine
+        })
+        .done(function(result){
+            if (typeof(result) !== &#x27;object&#x27;){
+                app.dMessage(&#x27;Error Getting Category Questions&#x27;, result);
+                return result;
+            }
+            // internal error handling
+            if (result.error !== undefined){
+                app.dMessage(result.error.error, result.error.msg);
+                console.log(result.error);
+                return result;
+            }
+            // load question selectmenu
+            $.each(result.questions, function(){
+                qList.append($(&#x27;&lt;option /&gt;&#x27;).val(this.question_id).text(this.question_text));
+                qList.val(&quot;&quot;);
+                qList.selectmenu(&#x27;refresh&#x27;);
+            });
+        });
+    };
+
+    function escapeId(myID){
+        return &quot;#&quot; + myID.replace(/[!&quot;#$%&amp;&#x27;()*+,.\/:;&lt;=&gt;?@[\\\]^&#x60;{|}~]/g, &quot;\\\\$&amp;&quot;);
+    }
+
+
+    // validator selectmenu method
+    $.validator.addMethod(&quot;selectNotEqual&quot;, function(value, element, param) {
+        return param != value;
+    },&quot;Please choose a subcategory&quot;);
+
+    // validator defaults
+    $.validator.setDefaults({
+        debug: true,
+        ignore: &quot;&quot;,
+        errorPlacement: function (error, element) {
+            // account for jquery selectmenu
+            id = escapeId(element.context.id);
+            /*  I was lazy and copied the forms so ids are duplicated
+                The next if is to specify the element by form
+            */
+            if (id.indexOf(&#x27;[&#x27;) &lt; 0){
+                // the previous test is for dynamic subcategory elements (eg. &quot;#p_subCategory\\[2\\]&quot;)
+                currentForm = &quot;#&quot; + $(element).closest(&#x27;form&#x27;)[0].id;
+                currentId = currentForm + &quot; &quot; + id;
+                element = $(currentId);
+            }
+            if (element[0].nodeName === &quot;SELECT&quot;){
+                // account for jquery selectmenu structure which
+                // uses a span to display list/button
+                // next() refers to &#x27;#&#x27; + element.id + &#x27;-button&#x27;
+                element = element.next();
+            }
+            // last chance to init element if not done already
+            if ($(element).data(&#x27;tooltipster-ns&#x27;) === undefined) $(element).tooltipster();
+
+            var lastError = $(element).data(&#x27;lastError&#x27;), // get the last message if one exists
+                newError = $(error).text();               // set the current message
+
+            $(element).data(&#x27;lastError&#x27;, newError);  // set &quot;lastError&quot; to the current message for the next time &#x27;errorPlacement&#x27; is called
+
+            if(newError !== &#x27;&#x27; &amp;&amp; newError !== lastError){  // make sure the message is not blank and not equal to the last message before allowing the Tooltip to update itself
+                $(element)
+                    .tooltipster(&#x27;content&#x27;, newError) // insert content into tooltip
+                    .tooltipster(&#x27;show&#x27;);              // show the tooltip
+            }
+        },
+        success: function (label, element) {
+            if (element.nodeName === &quot;SELECT&quot;){
+                // account for jquery selectmenu structure which
+                // uses a span to display list/button
+                // next() refers to &#x27;#&#x27; + element.id + &#x27;-button&#x27;
+                element = $(element).next();
+            }
+            // last chance to init element if not done already
+            if ($(element).data(&#x27;tooltipster-ns&#x27;) === undefined) $(element).tooltipster();
+            $(element).tooltipster(&#x27;hide&#x27;);  // hide tooltip when field passes validation
+        },
+        showErrors: function (errorMap, errorList) {
+              if (typeof errorList[0] != &quot;undefined&quot;) {
+                  var position = $(errorList[0].element).position().top;
+                  $(&#x27;html, body&#x27;).animate({
+                      scrollTop: position
+                  }, 300);
+
+              }
+              this.defaultShowErrors();
+          }
+    });
+
+    function get_mboxDefaults(title, message){
+        return {
+            autoResize: true,
+            dialogClass: &#x27;no-close&#x27;,
+            modal: true,
+            title: title,
+            open: function(){
+                icon = &#x27;&lt;span class=&quot;ui-icon ui-icon-info&quot; style=&quot;float:left; margin:0 7px 5px 0;&quot;&gt;&lt;/span&gt;&#x27;;
+                $(this).parent().find(&quot;span.ui-dialog-title&quot;).prepend(icon);
+                $(this).html(message);
+            },
+           buttons: {
+                Ok: function () {
+                   $(this).dialog(&quot;close&quot;);
+                }
+           }
+       };
+    }
+
+    // usersnap code for bug reporting
+    (function() {
+        var s = document.createElement(&quot;script&quot;);
+        s.type = &quot;text/javascript&quot;;
+        s.async = true;
+        s.src = &#x27;//api.usersnap.com/load/&#x27;+
+                &#x27;1135d21c-f848-4993-a9cb-fe7141f4cac2.js&#x27;;
+        var x = document.getElementsByTagName(&#x27;script&#x27;)[0];
+        x.parentNode.insertBefore(s, x);
+    })();
+
+    function toggleSignIn(){ $(&quot;#login-tab, #reset-tab&quot;).toggle(); }
+
+    function showLoginDialog(idx, fn){
+        // get logic for signup and login
+        require([&#x27;pages/index&#x27;,&#x27;pages/signup&#x27;]);
+        if (!$(&#x27;.modal-container&#x27;).length) createLoginDialog();
+        $(&#x27;.modal-container&#x27;)
+            .tabs({ active: idx })
+            .dialog(&#x27;open&#x27;)
+            .siblings(&#x27;div.ui-dialog-titlebar&#x27;).remove();
+    }
+
+    /**
+     * Returns the app object with var/functions built in
+    * @alias module:app
+    */
+    app = {
+        /** @property  {string} defaultTheme Default theme */
+        defaultTheme: defaultTheme,
+        /** @property {object} selectMenuOpt Default select menu options */
+        selectMenuOpt: selectMenuOpt,
+        /** @property {object} tabOptions Default tab options */
+        tabOptions: tabOptions,
+        /** @property {object} pages Site pages from library so no hard coding is necessary */
+        pages: lib.navPages,
+        /** @property {string}  engine CGI script = site traffic cop for database interaction */
+        engine : app_engine,
+        /** @property {object}  objCategories global object used to populate category selectmenu */
+        objCategories: objCategories,
+        // utility functions
+        /** @property {function} init Initialization of all pages */
+        init: init,
+        /** @property {function} mboxDefaults gets message box default options (params: title, message) */
+        mboxDefaults: get_mboxDefaults,
+        /** @property {function} isEmpty Test if object is empty*/
+        isEmpty: isEmpty,
+        /** @property {function} setCookie */
+        setCookie: setCookie,
+        /** @property {function} getCookie */
+        getCookie: getCookie,
+        /** @property {function} showSkills */
+        showSkills: showSkills,
+        /** @property {function} showLoading Handles wait message for ajax calls */
+        showLoading: loading,
+        /** @property {function} navBar Handles navigation bar and welcome info */
+        navBar: loginNavBar,
+        /** @property {function} hideLoading Handles closing wait message for ajax calls */
+        hideLoading: unloading,
+        /** @property {function} setTheme */
+        setTheme: setTheme,
+        /** @property {function} prettyPrint Formatting for js objects */
+        prettyPrint: pprint,
+        /** @property {function} logout */
+        logout: logout,
+        /** @property {function} getCategories */
+        getCategories: getCategories,
+        /** @property {function} loadCategories */
+        loadCategories: loadCategories,
+        /** @property {function} getCatQuestions */
+        getCatQuestions: getCatQuestions,
+        /** @property {function} getAvatar */
+        getAvatar: getAvatar,
+        /** @property {function} agreement  Functions for terms and conditions */
+        agreement: agreement,
+        /** @property {function} setFooter */
+        setFooter: setFooter,
+        /** @property {function} rankInfo  Functions for displaying rank info */
+        rankInfo: rankInfo,
+        /** @property {function} toggleTestButtons  */
+        toggleTestButtons: toggleTestButtons,
+        /** @property {function} ensureLogin  */
+        ensureLogin: ensureLogin,
+        /** @property {function} showLoginDialog  */
+        showLoginDialog: showLoginDialog,
+        /** @property {function} toggleSignIn  */
+        toggleSignIn: toggleSignIn,
+        /** @property {function} dMessage Generate app messages  */
+        dMessage : function(title, message, options){
+            title = (title === undefined) ? &quot;Error&quot; : title;
+            if (message !== undefined){
+                // print objects in readable form
+                message = (typeof(message) === &#x27;object&#x27;) ? this.prettyPrint(message) : message;
+            }else{
+                message = &quot;&quot;;
+            }
+            settings = this.mboxDefaults(title, message);
+            if (options) settings = $.extend({}, this.mboxDefaults(title, message), options);
+            $(&#x27;&lt;div /&gt;&#x27;).dialog(settings);
+        },
+        /** @property {function} getTheme Get current theme*/
+        getTheme: function(){
+            $.cookie.json = true;
+            current_theme =  $.cookie(&#x27;theme&#x27;);
+            return (current_theme === undefined) ? this.defaultTheme : current_theme;
+        },
+        /** @property {function} subCheck Handles sub-category selectmenu generation */
+        subCheck:function(element){
+            app = this;
+            if (element === undefined) return false;
+
+            // get calling element info
+            current_id = parseInt(element.val());
+            current_selection = $(&quot;option:selected&quot;, element).text();
+            element_id_prefix = element.attr(&#x27;id&#x27;).prefix();
+            element_is_top = false;
+
+            // quit if None selected
+            if (isNaN(current_id)) return false;
+
+            // check the categories object for subcategories of current selection
+            catCollection = [];
+            $.each(app.objCategories, function(idx, objCat){
+                parentID = objCat.parent_id;
+                catID = objCat.category_id;
+
+                if (current_id == catID &amp;&amp; parentID === undefined ){ element_is_top = true; }
+                // accumulate children
+                if (parentID == current_id){
+                    catCollection.push(objCat);
+                }
+            });
+
+            if (catCollection.length &gt; 0){
+                /* create subcategory select, fill and new subs checkbox */
+                // get the template paragraph element
+                $(&#x27;#placeHolder&#x27;).load(&#x27;templates.html #subCatTemplate&#x27;, function(response, status, xhr){
+                    if (status != &#x27;error&#x27;){
+                        parentP = $(&#x27;#subCatTemplate&#x27;);
+                        // clone it
+                        var clone = parentP.children().clone();
+
+                        // add identifying class for later removal
+                        clone.addClass(&#x27;clone&#x27;);
+
+                        // get current iteration of instantiation of the template for naming
+                        var iteration = $(document).data(&#x27;tempCount&#x27;);
+                        // increment iteration as index and save new iteration
+                        index = ++iteration;
+                        $(document).data(&#x27;tempCount&#x27;, iteration);
+
+                        // loop through all child elements to modify before appending to the dom
+                        clone.children().each(function(){
+                            changeID = true;
+                            elName = null;
+                            elID = null;
+                            // get the id ov the current element
+                            var templateID = $(this).prop(&#x27;id&#x27;);
+                            // make sure there are no blank ids
+                            switch ($(this).prop(&#x27;type&#x27;) || $(this).prop(&#x27;nodeName&#x27;).toLowerCase()){
+                                case &#x27;label&#x27;:
+                                    strFor = $(this).prop(&#x27;for&#x27;);
+                                    origPrefix = strFor.prefix();
+                                    strFor = strFor.replace(origPrefix, element_id_prefix) + index;
+                                    // change &#x27;for&#x27; property for label
+                                    $(this).prop(&#x27;for&#x27;, strFor);
+                                    changeID = false;
+                                    break;
+                                case &#x27;select&#x27;:
+                                case &#x27;select-one&#x27;:
+                                    elID = templateID.replace(templateID.prefix(), element_id_prefix) + &quot;[&quot; + index + &quot;]&quot;;
+                                    elName = templateID.replace(templateID.prefix(), element_id_prefix) + &quot;[]&quot;;
+                                    // add new option to select menu based on parent id
+                                    $(this)
+                                        .addClass(&#x27;required&#x27;)
+                                        .empty()
+                                        .append(new Option(&quot;None&quot;, &quot;&quot;));
+                                        tmpSelect = $(this);
+                                        $.each(catCollection, function(idx, objCat){
+                                            cat = objCat.category;
+                                            id = objCat.category_id;
+                                            tmpSelect.append(new Option(cat, id));
+                                        });
+                                        break;
+                                case &#x27;checkbox&#x27;:
+                                    elID = templateID.replace(templateID.prefix(), element_id_prefix) + index;
+                                    elName = elID;
+                                    break;
+                                default:
+                                    changeID = false;
+                            }
+                            // only change the id of necessary elements
+                            if (changeID)  {
+                                $(this).prop({&quot;id&quot;:elID, &quot;name&quot;: elName });
+                            }
+                        });
+                        element.parent().after(clone);
+                        $(&#x27;#placeHolder&#x27;).empty();
+                    }else{
+                        app.dMessage(status.capitlize() + &#x27; - Template File&#x27;, xhr.statusText);
+                    }
+                });
+            }else{
+                // category is top-level
+                msg = &quot;No Sub-category found for: &quot; + current_selection;
+                title = &quot;Selection Error: &quot; + current_selection;
+                msg += (element_is_top) ? &quot; is a top-level category!&quot; : &quot; has no sub-categories&quot;;
+                app.dMessage(title, msg);
+            }
+        }
+    };
+
+
+    function createLoginDialog(){
+        //load the signin/up template
+        $(&#x27;.test&#x27;).load(&#x27;templates.html .modal-container&#x27;, function(response, status, xhr){
+            if (status != &#x27;error&#x27;){
+                // hide password reset panel by default
+                $(&quot;#reset-tab&quot;).toggle();
+                $(&quot;.modal-container&quot;)
+                    .tabs({
+                        beforeActivate: function(event, ui){
+                            // if going from reset password to signup...
+                            if (ui.newPanel[0].id === &#x27;signup-tab&#x27;){
+                                // reset signup tab to prevent...weirdness
+                                if ($(&#x27;#reset-tab&#x27;).is(&#x27;:visible&#x27;)) app.toggleSignIn();
+                            }
+                        }
+                    })
+                    .dialog({
+                        // resizable: false,
+                        autoResize: true,
+                        autoOpen: false,
+                        minHeight: &quot;auto&quot;,
+                        closeOnEscape: true,
+                        dialogClass: &#x27;no-close&#x27;,
+                        modal: true,
+                        width: &#x27;auto&#x27;,
+                        height: &#x27;auto&#x27;,
+                        buttons: {
+                            Close: function () {
+                                $(this).dialog(&quot;close&quot;);
+                            }
+                        }
+                    });
+                $(&#x27;.cd-form-bottom-message&#x27;).click(app.toggleSignIn);
+                app.showLoginDialog();
+            }else{
+                app.dMessageBox(&#x27;Error&#x27;, xhr);
+            }
+        });
+    }
+
+    /**
+     * @memberof app
+     * @event Navigation click
+     * @desc Handles click event for Signup/SignIn buttons
+     * and determins whether to create login dialog and which tab to open
+     */
+    $(document).on(&#x27;click&#x27;, &#x27;.main-nav&#x27;,function(event){
+        user = app.getCookie(&#x27;user&#x27;);
+        signup = $(event.target).is(&#x27;.cd-signup&#x27;);
+        if (signup) app.agreement();
+
+        signin = $(event.target).is(&#x27;.cd-signin&#x27;);
+        // function helper to show signin panel
+        if (signup || signin){
+            index = (signup) ? 1 : 0;
+            // if the signup element has not been created
+            if (!$(&#x27;.modal-container&#x27;).length){
+                createLoginDialog();
+            }else{
+                app.showLoginDialog(index);
+            }
+        }
+    });
+    return app;
+});
+
+    </pre>
+</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="../assets/vendor/prettify/prettify-min.js"></script>
+<script>prettyPrint();</script>
+<script src="../assets/js/yui-prettify.js"></script>
+<script src="../assets/../api.js"></script>
+<script src="../assets/js/api-filter.js"></script>
+<script src="../assets/js/api-list.js"></script>
+<script src="../assets/js/api-search.js"></script>
+<script src="../assets/js/apidocs.js"></script>
+</body>
+</html>

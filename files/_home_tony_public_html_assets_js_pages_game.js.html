@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>/home/tony/public_html/assets/js/pages/game.js</title>
+    <link rel="stylesheet" href="http://yui.yahooapis.com/3.9.1/build/cssgrids/cssgrids-min.css">
+    <link rel="stylesheet" href="../assets/vendor/prettify/prettify-min.css">
+    <link rel="stylesheet" href="../assets/css/main.css" id="site_styles">
+    <link rel="icon" href="../assets/favicon.ico">
+    <script src="http://yui.yahooapis.com/combo?3.9.1/build/yui/yui-min.js"></script>
+</head>
+<body class="yui3-skin-sam">
+
+<div id="doc">
+    <div id="hd" class="yui3-g header">
+        <div class="yui3-u-3-4">
+                <h1><img src="../assets/css/logo.png" title="" width="117" height="52"></h1>
+        </div>
+        <div class="yui3-u-1-4 version">
+            <em>API Docs for: </em>
+        </div>
+    </div>
+    <div id="bd" class="yui3-g">
+
+        <div class="yui3-u-1-4">
+            <div id="docs-sidebar" class="sidebar apidocs">
+                <div id="api-list">
+                    <h2 class="off-left">APIs</h2>
+                    <div id="api-tabview" class="tabview">
+                        <ul class="tabs">
+                            <li><a href="#api-classes">Classes</a></li>
+                            <li><a href="#api-modules">Modules</a></li>
+                        </ul>
+                
+                        <div id="api-tabview-filter">
+                            <input type="search" id="api-filter" placeholder="Type to filter APIs">
+                        </div>
+                
+                        <div id="api-tabview-panel">
+                            <ul id="api-classes" class="apis classes">
+                                <li><a href="../classes/app/appLib.contentMode.html">app/appLib.contentMode</a></li>
+                                <li><a href="../classes/app/appLib.defaults.html">app/appLib.defaults</a></li>
+                                <li><a href="../classes/app/appLib.steps.html">app/appLib.steps</a></li>
+                                <li><a href="../classes/app/appLib.stepsOrientation.html">app/appLib.stepsOrientation</a></li>
+                                <li><a href="../classes/app/appLib.transitionEffect.html">app/appLib.transitionEffect</a></li>
+                            </ul>
+                
+                
+                            <ul id="api-modules" class="apis modules">
+                                <li><a href="../modules/app.html">app</a></li>
+                                <li><a href="../modules/feedback.html">feedback</a></li>
+                                <li><a href="../modules/game.html">game</a></li>
+                                <li><a href="../modules/signup.html">signup</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="yui3-u-3-4">
+                <div id="api-options">
+                    Show:
+                    <label for="api-show-inherited">
+                        <input type="checkbox" id="api-show-inherited" checked>
+                        Inherited
+                    </label>
+            
+                    <label for="api-show-protected">
+                        <input type="checkbox" id="api-show-protected">
+                        Protected
+                    </label>
+            
+                    <label for="api-show-private">
+                        <input type="checkbox" id="api-show-private">
+                        Private
+                    </label>
+                    <label for="api-show-deprecated">
+                        <input type="checkbox" id="api-show-deprecated">
+                        Deprecated
+                    </label>
+            
+                </div>
+            
+            <div class="apidocs">
+                <div id="docs-main">
+                    <div class="content">
+<h1 class="file-heading">File: /home/tony/public_html/assets/js/pages/game.js</h1>
+
+<div class="file">
+    <pre class="code prettyprint linenums">
+/**
+* @fileOverview   Handles all functions for the game page
+* @module game
+* @author Tony Moses
+* @version 0.1
+i*
+* @typedef {object} setupStructure
+ */
+require([
+    &#x27;jquery&#x27;,
+    &#x27;app&#x27;,
+    &#x27;gameLib&#x27;,
+    &#x27;flipclock&#x27;,
+    &#x27;validate&#x27;,
+    &#x27;jqueryUI&#x27;,
+    &#x27;livequery&#x27;,
+    &#x27;cookie&#x27;,
+    &#x27;blockUI&#x27;
+], function($, app, lib){
+    // game parameters global var
+    var user,
+    timeout,
+    params,
+    timeLeft = 0,
+    divVotePrefix = &#x27;comment_&#x27;,
+    onStateClass = &quot;ui-state-highlight&quot;,
+    offStateClass = &quot;ui-widget-content&quot;,
+    disableStateClass = &quot;ui-state-disabled&quot;,
+    gamePanel = &#x27;h3:contains(&quot;Debate Game&quot;)&#x27;,
+    paramPanel = &#x27;h3:contains(&quot;Parameter Selection&quot;)&#x27;,
+    resultPanel = &#x27;h3:contains(&quot;Game Results&quot;)&#x27;,
+    gameSubmitted = false,
+    pollCounter = 0;
+
+    // handle page setup upon arrival
+    app.init(&#x27;game&#x27;);
+    user = app.getCookie(&#x27;user&#x27;);
+
+    /*
+     * Add event to enable test buttons on page
+     * TODO: following line must be commented for production
+     */
+    $(document).on(&#x27;click&#x27;, &#x27;.test&#x27;, function(){
+        app.toggleTestButtons();
+    });
+
+
+    /**
+     * function loads meta data (eg. time options/wager options
+     */
+    (function loadMeta(){
+        $.ajax({
+            data: {&#x27;function&#x27;: &quot;GMD&quot;, &#x27;id&#x27;: &#x27;getMetaData&#x27;},
+            url: app.engine,
+            type: &#x27;POST&#x27;,
+            dataType: &#x27;json&#x27;,
+            desc: &#x27;utility (load metadata)&#x27;,
+            success: function(data){
+            $.each($(&#x27;[id=wager]&#x27;), function(){
+                $(this)
+                    .empty()
+                    .append(new Option(&quot;None&quot;, &quot;&quot;));
+
+                // load question selectmenu
+                element = $(this);
+                $.each(data.wagers, function(){
+                $(element)
+                    .append($(&#x27;&lt;option /&gt;&#x27;)
+                    .val(this.credit_id)
+                    .text(this.credit_value + &#x27; credit(s)&#x27;))
+                    .val(&quot;&quot;)
+                    .selectmenu(&#x27;refresh&#x27;);
+                    });
+                });
+
+                $.each($(&#x27;[id=timeLimit]&#x27;), function(){
+                    $(this)
+                        .empty()
+                        .append(new Option(&quot;None&quot;, &quot;&quot;));
+
+                    element = $(this);
+                    // load question selectmenu
+                    $.each(data.times, function(){
+                        $(element)
+                            .append($(&#x27;&lt;option /&gt;&#x27;)
+                            .val(this.time_id)
+                            .text(this.time_in_seconds.toString().toMMSS()))
+                            .val(&quot;&quot;)
+                            .selectmenu(&#x27;refresh&#x27;);
+                    });
+                });
+            }
+        });
+    })();
+
+    /**
+     *  Recursive poller of the db to get players and start game
+     *  on success = loads the debate
+     *  on error = gives the user another chance to search for a game
+     * @public
+     * @method getGame
+     *
+     */
+    function getGame(){
+        // create ajax poll
+        game = function(){
+            $.ajax({
+                data: params,
+                url: app.engine,
+                type: &#x27;POST&#x27;,
+                dataType: &#x27;json&#x27;,
+                desc: &#x27;Game Creation&#x27;,
+                global: false,
+                success: function(data){
+                    if (pollCounter &lt;= 4){
+                        pollCounter++;
+                        params.counter = pollCounter;
+                        if (data.status === &#x27;pending&#x27;){
+                            getGame();
+                        }else if(data.status === &#x27;complete&#x27;){
+                            // update game ui
+                            clearTimeout(timeout);
+                            loadDebate(data);
+                        }else if(data.queue){
+                            // set the created queue_id to params
+                            params.queue_id = data.queue.queue_id;
+                            matchText = &#x27;Please stay with us while Isaiditbest finds you the best match up...&#x27;;
+                            $(&#x27;#cancelSearch h1&#x27;).html(matchText);
+                            getGame();
+                        }
+                    }else{
+                        $(&#x27;#game_panel&#x27;).unblock();
+                        clearTimeout(timeout);
+                        pollCounter = 0;
+                        app.dMessage(
+                            &quot;Alert&quot;,
+                            &#x27;&lt;h2&gt;Game Not Found&lt;/h2&gt;&lt;p&gt;Retry?&lt;/p&gt;&#x27;,
+                            {
+                                buttons: {
+                                    Yes: function(){
+                                        $(&#x27;#game_panel&#x27;).block({
+                                            message: $(&#x27;#cancelSearch&#x27;),
+                                            css:{ width: &#x27;275px&#x27;}
+                                        });
+                                        getGame();
+                                        $(this).dialog(&#x27;close&#x27;);
+                                    },
+                                    No: function(){
+                                        cancelGame();
+                                        // enable/disable appropriate panels
+                                        toggleParams();
+                                        // go back to parameters
+                                        openAccordionPanel(&#x27;last&#x27;);
+                                        $(this).dialog(&#x27;close&#x27;);
+                                    }
+                                }
+                            }
+                        );
+                    }
+                }
+            });
+        };
+        // if this is the first time called immediately excute ajax
+        if (params.counter === 0){
+            $(&#x27;#cancelSearch h1&#x27;).html(&#x27;Submitting your parameters...&#x27;);
+
+            // enable/disable appropriate panels
+            toggleParams();
+
+            openAccordionPanel(&#x27;next&#x27;);
+            $(&#x27;#game_panel&#x27;).block({
+                message: $(&#x27;#cancelSearch&#x27;),
+                css:{ width: &#x27;275px&#x27;}
+            });
+            game();
+        } else {
+            // if polling
+            timeout = setTimeout(game, 5000);
+        }
+    }
+
+
+    /** set up parameter forms for validation */
+    (function(){
+        // retrieve a param forms
+        forms = $(&#x27;div.paramDiv&#x27;).children(&#x27;form&#x27;);
+        // for each form
+        $.each(forms, function(){
+            // add validation w/ handler
+            $(this).validate({
+                submitHandler: function(){
+                    params = $(this.currentForm).serializeForm();
+                    params.user_id = user.user_id;
+                    params.function = &#x27;GG&#x27;;
+                    params.counter = pollCounter;
+                    getGame();
+                }
+            });
+            // for each of the selects in the form
+            elSelects = $(this).find(&#x27;select&#x27;);
+            // add rule
+            $.each(elSelects, function(){
+                $(this).rules(&quot;add&quot;, {
+                    required: true,
+                    selectNotEqual: &quot;&quot;
+                });
+            });
+        });
+    })();
+
+    /**
+     * validation for debate game ui
+      @memberof game
+     * @event Game submission of &quot;gameUI&quot;
+     * */
+    $(&#x27;#gameUI&#x27;).validate({
+        submitHandler: function(){
+            data = $(this.currentForm).serializeForm();
+            data.user_id = user.user_id;
+            submitGame(data);
+            // get the time left on the clock to know
+            // how long to wait for other users
+            timeLeft = gameClock.getTime().time;
+            gameClock.stop();
+        }
+    });
+
+    /**
+     * Submits game data
+     * @method submitGame
+     * @param {object} form data and current user id
+     */
+    function submitGame(data){
+        gameSubmitted = true;
+        data.function = &#x27;SUG&#x27;;
+        // app.dMessage(&#x27;Submitting Game&#x27;, data);
+        $.ajax({
+            url: app.engine,
+            data: data,
+            type: &#x27;POST&#x27;,
+            dataType: &#x27;json&#x27;,
+            desc: &#x27;Game Submission&#x27;,
+            success: function(result){
+                if (!result.error){
+                    // reset counter for other uses
+                    pollCounter = 0;
+                    // start polling for comment data
+                    commentPoll();
+                }else{
+                    app.dMessage(result.error, result.stm);
+                }
+            }
+        });
+    }
+
+    /**
+     * @method getCommentPollData
+     * @returns {object} object object containing function name, id, game id, counter
+     */
+    function getCommentPollData(){
+        return {
+            &quot;function&quot; : &quot;GCG&quot;, // Get      Comments from Game
+            &#x27;id&#x27; : &#x27;commentPoll&#x27;,
+            &#x27;game_id&#x27; : $(&#x27;#game_id&#x27;).val(),
+            &#x27;counter&#x27; : pollCounter
+        };
+    }
+
+    /**
+     * Calls polling function with generated options
+     * @method commentPoll
+     */
+    function commentPoll(){
+        opts = {
+            getData: getCommentPollData,
+            desc: &#x27;Comment Polling&#x27;,
+            strPending: &#x27;Waiting on comments from {0} players ...&#x27;,
+            completeFunc: displayComments,
+            strInitial: &#x27;Gathering player comments...&#x27;
+        };
+        poller(opts);
+    }
+
+    /**
+     * Polling function
+     * @method poller
+     */
+    function poller(options){
+        data = options.getData();
+        // create ajax poll
+        ajaxCall = function(){
+            $.ajax({
+                data: data,
+                url: app.engine,
+                type: &#x27;POST&#x27;,
+                dataType: &#x27;json&#x27;,
+                desc: options.desc,
+                global: false,
+                success: function(results){
+                    if (pollCounter &lt;= 400){
+                        pollCounter++;
+                        data.counter = pollCounter;
+                        if (!results.status){ app.dMessage(data.error, data.stm);}
+                        if (results.status === &#x27;pending&#x27;){
+                            // update ui continue polling
+                            $(&#x27;#game_panel&#x27;).unblock();
+                            msg = $.validator.format(options.strPending, [results.pending]);
+                            $(&#x27;#game_panel&#x27;).block({message: msg, css:{ width: &#x27;275px&#x27;}});
+                            poller(options);
+                        }else if(results.status === &#x27;complete&#x27;){
+                            // update game ui
+                            clearTimeout(timeout);
+                            options.completeFunc(results.users);
+                            $(&#x27;#game_panel&#x27;).unblock();
+                        }
+                    }else{
+                        $(&#x27;#game_panel&#x27;).unblock();
+                        pollCounter = 0;
+                        app.dMessage(&#x27;Data&#x27;, data);
+                    }
+                }
+            });
+        };
+        // if this is the first time called immediately excute ajax
+        if (data.counter === 0){
+            $(&#x27;#game_panel&#x27;).block({message: options.strInitial, css:{ width: &#x27;275px&#x27;}});
+            ajaxCall();
+        } else {
+            // if polling
+            timeout = setTimeout(ajaxCall, 5000);
+        }
+    }
+
+    /**
+     * Displays game comments in jquery selectable format
+     * @method displayComments
+     * @param {array} users an array
+     */
+    function displayComments(users){
+        // show vote/hide game
+        toggleGame();
+
+        // build vote form
+        // add a ul before the vote button
+        $(&#x27;#btnVote&#x27;).before(&#x27;&lt;ul id=&quot;selectable&quot; &gt;&#x27;);
+        // for each of the users in the data...
+        $.each(users, function(){
+            $(&#x27;#debateVote ul&#x27;).append(
+                // add user formatted info
+                $(&#x27;&lt;li /&gt;&#x27;)
+                .append(
+                    $(&#x27;&lt;div id=&quot;&#x27; + divVotePrefix + this.user_id + &#x27;&quot; /&gt;&#x27;).append(
+                        $(&#x27;&lt;img class=&quot;avatar&quot; src=&#x27; + app.getAvatar(this.avatar) + &quot; /&gt;&quot;),
+                        $(&#x27;&lt;div /&gt;&#x27;)
+                        .addClass(&#x27;votequote&#x27;)
+                        .text(this.thoughts),
+                        $(&#x27;&lt;cite /&gt;&#x27;).text(this.username)
+                    )
+                )
+                .addClass(offStateClass)
+                .addClass(&#x27;selectable&#x27;)
+            );
+        });
+
+        /** create selectable and disable current user as selection */
+        $(&#x27;#selectable&#x27;).selectable({
+            filter:&#x27;li.selectable&#x27;,
+            selected: function(event, ui){
+                // deselect selection if selected previously
+                if ($.inArray(onStateClass, ui.selected.classList) &gt; -1){
+                    $(ui.selected).addClass(offStateClass).removeClass(onStateClass);
+                }else{
+                    $( &quot;.ui-selected&quot;, this ).each(function() {
+                        // current user cannot vote for themselves
+                        selectedId = $(this).children().prop(&#x27;id&#x27;).substring(divVotePrefix.length);
+                        if (parseInt(selectedId) === user.user_id){
+                            app.dMessage(&quot;Illegal Action&quot;, &quot;You cannot vote for yourself!&quot;);
+                        }else{
+                            $(this).removeClass(offStateClass).addClass(onStateClass);
+                        }
+                    });
+                }
+                $(&#x27;li.selectable&#x27;).not(&quot;.ui-selected&quot;).not(disableStateClass).each(function() {
+                    $(this).removeClass(onStateClass).addClass(offStateClass);
+                });
+            }
+        });
+
+        // disable current user comment from selection
+        $(&#x27;#&#x27; + divVotePrefix + user.user_id).parent()
+        .removeClass(offStateClass)
+        .addClass(disableStateClass);
+    }
+
+    /**
+     * @memberof game
+     * @struct {setupStructure}
+     * @desc Validation for voting form &quot;debateVote&quot;
+     * */
+    $(&#x27;#debateVote&#x27;).validate({
+        submitHandler: function(){
+            selectedComment = $(&#x27;#selectable&#x27;).find(&#x27;li&#x27;).hasClass(onStateClass);
+            if (selectedComment){
+                selectedComment =  $(&#x27;#selectable&#x27;).find(&#x27;li.ui-state-highlight&#x27;);
+                idText = selectedComment.children().prop(&#x27;id&#x27;);
+                vote_id = parseInt(idText.substring(divVotePrefix.length));
+            }else{
+                app.dMessage(&quot;Error&quot;, &quot;You must select a comment.&quot;);
+                return false;
+            }
+            //gather data
+            data = $(this.currentForm).serializeForm();
+            data.game_id = $(&#x27;#game_id&#x27;).val();
+            data.function = &#x27;SVG&#x27;;
+            data.counter = pollCounter = 0;
+            data.user_id = user.user_id;
+            data.vote_id = vote_id;
+            submitVote(data);
+        }
+    });
+
+    /**
+     * Submit Vote to database and start polling for winner data
+     * @method submitVote
+     * @param {object} data Form data including vote and current user id
+     */
+    function submitVote(data){
+        $.ajax({
+            url: app.engine,
+            data: data,
+            type: &#x27;POST&#x27;,
+            dataType: &#x27;json&#x27;,
+            desc: &#x27;Vote Submission&#x27;,
+            success: function(result){
+                if (!result.error){
+                    // reset counter for other uses
+                    pollCounter = 0;
+                    votePoll();
+                }else{
+                    app.dMessage(result.error, result.stm);
+                }
+            }
+        });
+    }
+
+    /**
+     * @method getVotePollData
+     * @returns {object} object object containing function name, id, game id, counter
+     */
+    function getVotePollData(){
+        return {
+            &quot;function&quot; : &quot;GVG&quot;, // Get      votes from Game
+            &#x27;id&#x27; : &#x27;votePoll&#x27;,
+            &#x27;game_id&#x27; : $(&#x27;#game_id&#x27;).val(),
+            &#x27;counter&#x27; : pollCounter
+        };
+    }
+    /**
+     * Calls polling function with generated options
+     * @method votePoll
+     */
+    function votePoll(){
+        opts = {
+            getData: getVotePollData,
+            desc: &#x27;Vote Polling&#x27;,
+            strPending: &#x27;Waiting on votes from {0} players ...&#x27;,
+            completeFunc: loadWinner,
+            strInitial: &#x27;Gathering player votes...&#x27;
+        };
+        poller(opts);
+    }
+
+    /**
+     * @method loadWinner
+     * @param {array} users Array of objects represent vote data including user info
+     * @returns {html} winnerDiv info
+     */
+    function loadWinner(users){
+        // disable game, enable parameter selection
+        toggleParams();
+
+        // show results
+        if (!$(resultPanel).is(&#x27;:visible&#x27;)){
+            $(resultPanel).toggle();
+        }
+
+        // build winner info
+        var obj = lib.getWinner(users);
+        strWinnerVote =&#x27;&lt;p&gt;&lt;b&gt;{0}&lt;/b&gt;, with &lt;i&gt;{1}&lt;/i&gt; votes, won {2} credits&lt;/div&gt;&lt;/p&gt;&#x27;;
+        strVote =&#x27;&lt;span&gt;&lt;b&gt;{0}&lt;/b&gt;, with &lt;i&gt;{1}&lt;/i&gt; votes&lt;/span&gt;&#x27;;
+        var winner = $(&#x27;&lt;div /&gt;&#x27;)
+        .addClass(&#x27;winnerDiv&#x27;)
+        .append(
+            $(&#x27;&lt;div /&gt;&#x27;)
+            .addClass(&#x27;winnerTitle&#x27;)
+            .html(&#x27;&lt;b&gt;&lt;i&gt;Winner&lt;/i&gt;&lt;/b&gt;&#x27;),
+            $(&#x27;&lt;img src=&quot;/assets/avatars/&#x27; + obj.winner.avatar + &#x27;&quot; class=&quot;avatar_large&quot; /&gt;&#x27;),
+            $($.validator.format(strWinnerVote, [obj.winner.username, obj.winner.votes, obj.pot]))
+        );
+
+        // display winner info
+        $(resultPanel).click();
+        $(&#x27;#results_panel&#x27;).find(&quot;p&quot;).remove();
+        $(&#x27;#results_footer&#x27;)
+        .before( $(&#x27;&lt;p /&gt;&#x27;).append(winner));
+
+        // display the rest of the players
+        // $.each(users, function(){
+        //      if (this.user_id !== obj.winner.user_id){
+        //          $(&#x27;#results_footer&#x27;)
+        //              .before(
+        //                  $(&#x27;&lt;div /&gt;&#x27;)
+        //                      .append(
+        //                          $(&#x27;&lt;img src=&quot;/assets/avatars/&#x27; + this.avatar + &#x27;&quot; class=&quot;avatar_icon&quot; /&gt;&#x27;),
+        //                          $($.validator.format(strVote, [this.username, this.votes]))
+        //                      )
+        //              );
+        //      }
+        // });
+
+        resTitle = (obj.winner.user_id == user.user_id) ? &quot;Congratulations!!! You won!&quot; : &quot;Maybe next time&quot;;
+        $(&#x27;#results_footer&#x27;).html(resTitle);
+        $(&#x27;#results_footer&#x27;)
+        .append(
+            $(&#x27;&lt;p /&gt;&#x27;)
+            .append(
+                $(&#x27;&lt;a /&gt;&#x27;)
+                .prop(&#x27;href&#x27;, app.pages.game)
+                .html(&#x27;Play Again?&#x27;)
+            )
+        );
+    }
+
+
+
+    $(&#x27;#LD&#x27;).click(function(){
+        // load data to display function
+        $(gamePanel).click();
+        loadDebate(lib.sampleGameStartData);
+    });
+
+    $(&#x27;#LC&#x27;).click(function(){
+        // load data to display function
+        $(gamePanel).click();
+        $(&#x27;#selectable&#x27;).remove();
+        displayComments(lib.sampleCommentResultData[0].users);
+    });
+
+
+    $(&#x27;#TGV&#x27;).click(function(){
+        toggleGame();
+    });
+
+    $(&#x27;#TW&#x27;).click(function(){
+        if (!$(resultPanel).is(&#x27;:visible&#x27;)){
+            loadWinner(lib.sampleVoteResultData);
+        }else{
+            toggleParams();
+            $(resultPanel).toggle();
+            $(gamePanel).click();
+        }
+    });
+
+    function toggleParams(){
+        // disable/enable params
+        $(paramPanel).toggleClass(&#x27;ui-state-disabled&#x27;);
+        // disable/enable game
+        $(gamePanel).toggleClass(&#x27;ui-state-disabled&#x27;);
+    }
+
+    function toggleGame(){
+        $(&#x27;#debate, .debateVote&#x27;).toggle();
+    }
+
+    /**
+     * Game Clock instantiation
+     * @type {FlipClock}
+     */
+    gameClock = $(&#x27;#game_timer&#x27;).FlipClock({
+        autoStart: false,
+        countdown: true,
+        clockFace: &#x27;MinuteCounter&#x27;,
+        callbacks: {
+            stop: function(){
+                data = $(&#x27;#gameUI&#x27;).serializeForm();
+                data.user_id = user.user_id;
+                if (!gameSubmitted) submitGame(data);
+            }
+        }
+    });
+    /**
+     *  Wait Clock instantiation
+     * @type {FlipClock}
+     */
+    waitClock = $(&#x27;#wait_timer&#x27;).FlipClock(10,{
+        autoStart: false,
+        countdown: true,
+        clockFace: &#x27;MinuteCounter&#x27;,
+        callbacks: {
+            stop: function(){
+                $.unblockUI();
+                gameClock.start();
+                $(&#x27;#gameWait&#x27;).addClass(&#x27;hidden&#x27;);
+            }
+        }
+    });
+
+    function loadDebate(data, testing){
+        var runtimers = (testing !== undefined)
+        // set game id
+        $(&#x27;#game_id&#x27;).val(data.game_id);
+
+        // load player avatars
+        $(&#x27;#players&#x27;)
+        .empty()
+        .html(&quot;Players&quot;);
+
+        $.each(data.users, function(){
+            $(&#x27;&lt;div /&gt;&#x27;)
+            .attr({ id: this.username })
+            .appendTo(&#x27;#players&#x27;);
+            $(&#x27;&lt;img  /&gt;&#x27;)
+            .attr({
+                class: &#x27;avatar&#x27;,
+                src: app.getAvatar(this.avatar),
+                title: this.username
+            })
+            .appendTo(&#x27;#&#x27; + this.username);
+            $(&#x27;&lt;br /&gt;&#x27;).appendTo(&#x27;#players&#x27;);
+        });
+
+        // disable waiting message
+        $(&#x27;#game_panel&#x27;).unblock();
+
+        //set game title(question)/wager
+        $(&quot;#question&quot;)
+        .html(data.question)
+        .append(
+            $(&#x27;&lt;h5&gt;&#x27;)
+            // .addClass(&#x27;ui-state-active&#x27;)
+            .html(&quot;(Wager: &quot; + data.wager + &quot; credit&quot;.pluralize(data.wager) + &quot;)&quot;)
+        );
+
+        if (runtimers){
+            // set clock based on time limit parameter
+            gameClock.setTime(data.time);
+            // show waitclock
+            $(&#x27;#gameWait&#x27;).removeClass(&#x27;hidden&#x27;);
+            $.blockUI({message: $(&#x27;#gameWait&#x27;), css:{ width: &#x27;305px&#x27;}});
+            waitClock.start();
+        }
+    }
+
+    $(&#x27;#cancel&#x27;).click(function(){
+        $(&#x27;#game_panel&#x27;).unblock();
+        // enable/disable appropriate panels
+        toggleParams();
+        openAccordionPanel(&#x27;last&#x27;);
+        cancelGame().success(function(data){
+            // cancel poll
+            clearTimeout(timeout);
+            if (!data.error){
+                func = function(){
+                    params.counter = pollCounter = 0;
+                    $(this).dialog(&#x27;close&#x27;);
+                };
+                msgOpt = {
+                    buttons: {
+                        Yes: function(){
+                            getGame();
+                            func();
+                        },
+                        No: func
+                    }
+                };
+                app.dMessage(
+                    &quot;Alert&quot;,
+                    &#x27;Cancellation Confirmed&lt;p&gt;Retry?&lt;/p&gt;&#x27;,
+                    msgOpt
+                );
+            }else{
+                app.dMessage(data.error, data.stm);
+            }
+        });
+    });
+
+    function cancelGame(callback){
+        params.function = &#x27;CG&#x27;;
+        params.id = &#x27;cancelGame&#x27;;
+        return $.ajax({
+            url: app.engine,
+            data: params,
+            type: &#x27;POST&#x27;,
+            dataType: &#x27;json&#x27;,
+            desc: &#x27;Game Cancellation&#x27;
+        });
+    }
+
+    function openAccordionPanel(position) {
+        var current = app.accordion.accordion(&quot;option&quot;,&quot;active&quot;);
+        maximum = app.accordion.find(&quot;h3&quot;).length;
+        if (position === &#x27;next&#x27;){
+            position = current+1 === maximum ? 0 : current+1;
+        }else{
+            position = current-1 &lt; 0 ? 0 : current-1;
+        }
+        app.accordion.accordion(&quot;option&quot;,&quot;active&quot;,position);
+    }
+
+
+    // load question box with values based on category/subcategory
+    function primeQBox(catID){
+        // destination selectmenu
+        q_select = &#x27;#paramQuestions&#x27;;
+        // reset questions list
+        $(q_select)
+        .empty()
+        .selectmenu(&#x27;destroy&#x27;)
+        .selectmenu({width: &#x27;100%&#x27;, style: &#x27;dropdown&#x27;})
+        .append(new Option(&quot;None&quot;, &quot;&quot;));
+
+        // retrieve and load questions for selected id
+        app.getCatQuestions(catID, q_select);
+    }
+
+    // set a watch for additions/removal on the dom for select boxes (not including template)
+    $(&quot;select[id*=Category]:not([id*=temp])&quot;)
+    .livequery(function(){
+        // id = $(this).prop(&#x27;id&#x27;);
+        id = &#x27;#&#x27; + $(this)[0].form.id + &quot; &quot; +  $(this).prop(&#x27;id&#x27;);
+        // add validation
+        $(this).closest(&#x27;form&#x27;).validate();
+        $(this).rules(&quot;add&quot;, { selectNotEqual : &quot;&quot; });
+
+        // selectmenu options
+        mnuOpts = {
+            change: function(){
+                // load appropriate questions for selection
+                primeQBox($(this).val());
+
+                // validate select
+                $(this).closest(&#x27;form&#x27;).validate().element(this);
+                //  bind change event to all select menus to enable subcategory menu selection
+                boolSubs = $(this).siblings(&#x27;input&#x27;).prop(&quot;checked&quot;);
+
+                // get clones if present
+                clones = $(this).parent().siblings(&#x27;.clone&#x27;);
+                hasClones = clones.length &gt; 0;
+                // remove clones
+                if (hasClones){
+                    // kill all clones below current check
+                    $.each(clones, function(){
+                        $(this).remove();
+                    });
+                }
+
+                // if sub-categories are requested
+                if (boolSubs) app.subCheck($(this));
+            }
+        };
+        settings = $.extend({}, app.selectMenuOpt, mnuOpts);
+        $(this).selectmenu(settings);
+    });
+
+    // set watch for additions/removal on the dom for checkboxes (not including template)
+    $(&quot;input[id*=CategoryChk]:not([id*=temp])&quot;)
+    .livequery(function(){
+        $(this)
+        .change(function(event){
+            event.stopPropagation();
+            if($(this).is(&#x27;:checked&#x27;)){
+                var select = $(this).siblings(&#x27;select&#x27;);
+                app.subCheck(select);
+            }else{
+                // load appropriate questions for selection
+                primeQBox(&quot;#&quot; + $(this).siblings(&#x27;select&#x27;).prop(&#x27;id&#x27;));
+
+                // get all p tags that are not the original and do not contain the submit button
+                cloneP = $(this).parent().siblings(&#x27;.clone&#x27;);
+                // kill all clones below current check
+                $.each(cloneP, function(){
+                    $(this).remove();
+                });
+            }
+        }
+               );
+    });
+
+
+    /* Facebook Code */
+
+
+
+
+
+
+    window.fbAsyncInit = function() {
+        FB.init({
+            appId      : &#x27;1518603065100165&#x27;,
+            xfbml      : true,
+            version    : &#x27;v2.5&#x27;
+        });
+    };
+    (function(d, s, id) {
+        var js, fjs = d.getElementsByTagName(s)[0];
+        if (d.getElementById(id)) return;
+        js = d.createElement(s); js.id = id;
+        js.src = &quot;//connect.facebook.net/en_US/sdk.js#xfbml=1&amp;version=v2.5&amp;appId=1518603065100165&quot;;
+        fjs.parentNode.insertBefore(js, fjs);
+    }(document, &#x27;script&#x27;, &#x27;facebook-jssdk&#x27;));
+});
+
+    </pre>
+</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="../assets/vendor/prettify/prettify-min.js"></script>
+<script>prettyPrint();</script>
+<script src="../assets/js/yui-prettify.js"></script>
+<script src="../assets/../api.js"></script>
+<script src="../assets/js/api-filter.js"></script>
+<script src="../assets/js/api-list.js"></script>
+<script src="../assets/js/api-search.js"></script>
+<script src="../assets/js/apidocs.js"></script>
+</body>
+</html>

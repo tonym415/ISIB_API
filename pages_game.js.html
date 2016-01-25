@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>ISIB API Source: pages/game.js</title>
+
+	<!--[if lt IE 9]>
+	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+	<![endif]-->
+	<link type="text/css" rel="stylesheet" href="styles/sunlight.dark.css">
+
+	<link type="text/css" rel="stylesheet" href="styles/site.superhero.css">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-default navbar-fixed-top navbar-inverse">
+<div class="container">
+	<div class="navbar-header">
+		<a class="navbar-brand" href="index.html">ISIB API</a>
+		<button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#topNavigation">
+			<span class="icon-bar"></span>
+			<span class="icon-bar"></span>
+			<span class="icon-bar"></span>
+        </button>
+	</div>
+	<div class="navbar-collapse collapse" id="topNavigation">
+		<ul class="nav navbar-nav">
+			
+			<li class="dropdown">
+				<a href="namespaces.list.html" class="dropdown-toggle" data-toggle="dropdown">Namespaces<b class="caret"></b></a>
+				<ul class="dropdown-menu ">
+					<li><a href="app_appLib.html">app/appLib</a></li><li><a href="game_gameLib.html">game/gameLib</a></li>
+				</ul>
+			</li>
+			
+			<li class="dropdown">
+				<a href="modules.list.html" class="dropdown-toggle" data-toggle="dropdown">Modules<b class="caret"></b></a>
+				<ul class="dropdown-menu ">
+					<li><a href="module-app.html">app</a></li><li><a href="module-feedback.html">feedback</a></li><li><a href="module-game.html">game</a></li><li><a href="module-signup.html">signup</a></li>
+				</ul>
+			</li>
+			
+			<li class="dropdown">
+				<a href="events.list.html" class="dropdown-toggle" data-toggle="dropdown">Events<b class="caret"></b></a>
+				<ul class="dropdown-menu ">
+					<li><a href="app.html#.event:Navigationclick">app.event:Navigation click</a></li><li><a href="game.html#.event:Gamesubmissionof%2522gameUI%2522">game.event:Game submission of "gameUI"</a></li>
+				</ul>
+			</li>
+			
+			<li class="dropdown">
+				<a href="global.html" class="dropdown-toggle" data-toggle="dropdown">Global<b class="caret"></b></a>
+				<ul class="dropdown-menu ">
+					<li><a href="global.html#between">between</a></li><li><a href="global.html#capitalize">capitalize</a></li><li><a href="global.html#pluralize">pluralize</a></li><li><a href="global.html#prefix">prefix</a></li><li><a href="global.html#serializeForm">serializeForm</a></li><li><a href="global.html#setDefaults">setDefaults</a></li><li><a href="global.html#toMMSS">toMMSS</a></li>
+				</ul>
+			</li>
+			
+		</ul>
+		<div class="col-sm-3 col-md-3">
+            <form class="navbar-form" role="search">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="Search" name="q" id="search-input">
+                    <div class="input-group-btn">
+                        <button class="btn btn-default" id="search-submit"><i class="glyphicon glyphicon-search"></i></button>
+                    </div>
+                </div>
+            </form>
+        </div>
+	</div>
+
+</div>
+</div>
+
+
+<div class="container" id="toc-content">
+<div class="row">
+
+	
+	<div class="col-md-12">
+	
+		<div id="main">
+			
+
+		<h1 class="page-title">Source: pages/game.js</h1>
+    
+<section>
+    <article>
+        <pre
+            class="sunlight-highlight-javascript linenums">/**
+* @fileOverview   Handles all functions for the game page
+* @module game
+* @author Tony Moses
+* @version 0.1
+i*
+ */
+require([
+    'jquery',
+    'app',
+    'gameLib',
+    'flipclock',
+    'validate',
+    'jqueryUI',
+    'livequery',
+    'cookie',
+    'blockUI'
+], function($, app, lib){
+    // game parameters global var
+    var user,
+    timeout,
+    params,
+    timeLeft = 0,
+    divVotePrefix = 'comment_',
+    onStateClass = "ui-state-highlight",
+    offStateClass = "ui-widget-content",
+    disableStateClass = "ui-state-disabled",
+    gamePanel = 'h3:contains("Debate Game")',
+    paramPanel = 'h3:contains("Parameter Selection")',
+    resultPanel = 'h3:contains("Game Results")',
+    gameSubmitted = false,
+    pollCounter = 0;
+
+    // handle page setup upon arrival
+    app.init('game');
+    user = app.getCookie('user');
+
+    /*
+     * Add event to enable test buttons on page
+     * TODO: following line must be commented for production
+     */
+    $(document).on('click', '.test', function(){
+        app.toggleTestButtons();
+    });
+
+
+    /**
+     * function loads meta data (eg. time options/wager options
+     */
+    (function loadMeta(){
+        $.ajax({
+            data: {'function': "GMD", 'id': 'getMetaData'},
+            url: app.engine,
+            type: 'POST',
+            dataType: 'json',
+            desc: 'utility (load metadata)',
+            success: function(data){
+            $.each($('[id=wager]'), function(){
+                $(this)
+                    .empty()
+                    .append(new Option("None", ""));
+
+                // load question selectmenu
+                element = $(this);
+                $.each(data.wagers, function(){
+                $(element)
+                    .append($('&lt;option />')
+                    .val(this.credit_id)
+                    .text(this.credit_value + ' credit(s)'))
+                    .val("")
+                    .selectmenu('refresh');
+                    });
+                });
+
+                $.each($('[id=timeLimit]'), function(){
+                    $(this)
+                        .empty()
+                        .append(new Option("None", ""));
+
+                    element = $(this);
+                    // load question selectmenu
+                    $.each(data.times, function(){
+                        $(element)
+                            .append($('&lt;option />')
+                            .val(this.time_id)
+                            .text(this.time_in_seconds.toString().toMMSS()))
+                            .val("")
+                            .selectmenu('refresh');
+                    });
+                });
+            }
+        });
+    })();
+
+    /**
+     * @method getGame
+       @desc
+     *  Recursive poller of the db to get players and start game
+     *  - on success: loads the debate
+     *  - on error: gives the user another chance to search for a game
+     */
+    function getGame(){
+        // create ajax poll
+        game = function(){
+            $.ajax({
+                data: params,
+                url: app.engine,
+                type: 'POST',
+                dataType: 'json',
+                desc: 'Game Creation',
+                global: false,
+                success: function(data){
+                    if (pollCounter &lt;= 4){
+                        pollCounter++;
+                        params.counter = pollCounter;
+                        if (data.status === 'pending'){
+                            getGame();
+                        }else if(data.status === 'complete'){
+                            // update game ui
+                            clearTimeout(timeout);
+                            loadDebate(data);
+                        }else if(data.queue){
+                            // set the created queue_id to params
+                            params.queue_id = data.queue.queue_id;
+                            matchText = 'Please stay with us while Isaiditbest finds you the best match up...';
+                            $('#cancelSearch h1').html(matchText);
+                            getGame();
+                        }
+                    }else{
+                        $('#game_panel').unblock();
+                        clearTimeout(timeout);
+                        pollCounter = 0;
+                        app.dMessage(
+                            "Alert",
+                            '&lt;h2>Game Not Found&lt;/h2>&lt;p>Retry?&lt;/p>',
+                            {
+                                buttons: {
+                                    Yes: function(){
+                                        $('#game_panel').block({
+                                            message: $('#cancelSearch'),
+                                            css:{ width: '275px'}
+                                        });
+                                        getGame();
+                                        $(this).dialog('close');
+                                    },
+                                    No: function(){
+                                        cancelGame();
+                                        // enable/disable appropriate panels
+                                        toggleParams();
+                                        // go back to parameters
+                                        openAccordionPanel('last');
+                                        $(this).dialog('close');
+                                    }
+                                }
+                            }
+                        );
+                    }
+                }
+            });
+        };
+        // if this is the first time called immediately excute ajax
+        if (params.counter === 0){
+            $('#cancelSearch h1').html('Submitting your parameters...');
+
+            // enable/disable appropriate panels
+            toggleParams();
+
+            openAccordionPanel('next');
+            $('#game_panel').block({
+                message: $('#cancelSearch'),
+                css:{ width: '275px'}
+            });
+            game();
+        } else {
+            // if polling
+            timeout = setTimeout(game, 5000);
+        }
+    }
+
+
+    /** set up parameter forms for validation */
+    (function(){
+        // retrieve a param forms
+        forms = $('div.paramDiv').children('form');
+        // for each form
+        $.each(forms, function(){
+            // add validation w/ handler
+            $(this).validate({
+                submitHandler: function(){
+                    params = $(this.currentForm).serializeForm();
+                    params.user_id = user.user_id;
+                    params.function = 'GG';
+                    params.counter = pollCounter;
+                    getGame();
+                }
+            });
+            // for each of the selects in the form
+            elSelects = $(this).find('select');
+            // add rule
+            $.each(elSelects, function(){
+                $(this).rules("add", {
+                    required: true,
+                    selectNotEqual: ""
+                });
+            });
+        });
+    })();
+
+    /**
+     * validation for debate game ui
+      @memberof game
+     * @event Game submission of "gameUI"
+     * */
+    $('#gameUI').validate({
+        submitHandler: function(){
+            data = $(this.currentForm).serializeForm();
+            data.user_id = user.user_id;
+            submitGame(data);
+            // get the time left on the clock to know
+            // how long to wait for other users
+            timeLeft = gameClock.getTime().time;
+            gameClock.stop();
+        }
+    });
+
+    /**
+     * Submits game data
+     * @method submitGame
+     * @param {object} form data and current user id
+     */
+    function submitGame(data){
+        gameSubmitted = true;
+        data.function = 'SUG';
+        // app.dMessage('Submitting Game', data);
+        $.ajax({
+            url: app.engine,
+            data: data,
+            type: 'POST',
+            dataType: 'json',
+            desc: 'Game Submission',
+            success: function(result){
+                if (!result.error){
+                    // reset counter for other uses
+                    pollCounter = 0;
+                    // start polling for comment data
+                    commentPoll();
+                }else{
+                    app.dMessage(result.error, result.stm);
+                }
+            }
+        });
+    }
+
+    /**
+     * @method getCommentPollData
+     * @returns {object} object object containing function name, id, game id, counter
+     */
+    function getCommentPollData(){
+        return {
+            "function" : "GCG", // Get      Comments from Game
+            'id' : 'commentPoll',
+            'game_id' : $('#game_id').val(),
+            'counter' : pollCounter
+        };
+    }
+
+    /**
+     * Calls polling function with generated options
+     * @method commentPoll
+     */
+    function commentPoll(){
+        opts = {
+            getData: getCommentPollData,
+            desc: 'Comment Polling',
+            strPending: 'Waiting on comments from {0} players ...',
+            completeFunc: displayComments,
+            strInitial: 'Gathering player comments...'
+        };
+        poller(opts);
+    }
+
+    /**
+     * Polling function
+     * @method poller
+     */
+    function poller(options){
+        data = options.getData();
+        // create ajax poll
+        ajaxCall = function(){
+            $.ajax({
+                data: data,
+                url: app.engine,
+                type: 'POST',
+                dataType: 'json',
+                desc: options.desc,
+                global: false,
+                success: function(results){
+                    if (pollCounter &lt;= 400){
+                        pollCounter++;
+                        data.counter = pollCounter;
+                        if (!results.status){ app.dMessage(data.error, data.stm);}
+                        if (results.status === 'pending'){
+                            // update ui continue polling
+                            $('#game_panel').unblock();
+                            msg = $.validator.format(options.strPending, [results.pending]);
+                            $('#game_panel').block({message: msg, css:{ width: '275px'}});
+                            poller(options);
+                        }else if(results.status === 'complete'){
+                            // update game ui
+                            clearTimeout(timeout);
+                            options.completeFunc(results.users);
+                            $('#game_panel').unblock();
+                        }
+                    }else{
+                        $('#game_panel').unblock();
+                        pollCounter = 0;
+                        app.dMessage('Data', data);
+                    }
+                }
+            });
+        };
+        // if this is the first time called immediately excute ajax
+        if (data.counter === 0){
+            $('#game_panel').block({message: options.strInitial, css:{ width: '275px'}});
+            ajaxCall();
+        } else {
+            // if polling
+            timeout = setTimeout(ajaxCall, 5000);
+        }
+    }
+
+    /**
+     * Displays game comments in jquery selectable format
+     * @method displayComments
+     * @param {array} users an array
+     */
+    function displayComments(users){
+        // show vote/hide game
+        toggleGame();
+
+        // build vote form
+        // add a ul before the vote button
+        $('#btnVote').before('&lt;ul id="selectable" >');
+        // for each of the users in the data...
+        $.each(users, function(){
+            $('#debateVote ul').append(
+                // add user formatted info
+                $('&lt;li />')
+                .append(
+                    $('&lt;div id="' + divVotePrefix + this.user_id + '" />').append(
+                        $('&lt;img class="avatar" src=' + app.getAvatar(this.avatar) + " />"),
+                        $('&lt;div />')
+                        .addClass('votequote')
+                        .text(this.thoughts),
+                        $('&lt;cite />').text(this.username)
+                    )
+                )
+                .addClass(offStateClass)
+                .addClass('selectable')
+            );
+        });
+
+        /** create selectable and disable current user as selection */
+        $('#selectable').selectable({
+            filter:'li.selectable',
+            selected: function(event, ui){
+                // deselect selection if selected previously
+                if ($.inArray(onStateClass, ui.selected.classList) > -1){
+                    $(ui.selected).addClass(offStateClass).removeClass(onStateClass);
+                }else{
+                    $( ".ui-selected", this ).each(function() {
+                        // current user cannot vote for themselves
+                        selectedId = $(this).children().prop('id').substring(divVotePrefix.length);
+                        if (parseInt(selectedId) === user.user_id){
+                            app.dMessage("Illegal Action", "You cannot vote for yourself!");
+                        }else{
+                            $(this).removeClass(offStateClass).addClass(onStateClass);
+                        }
+                    });
+                }
+                $('li.selectable').not(".ui-selected").not(disableStateClass).each(function() {
+                    $(this).removeClass(onStateClass).addClass(offStateClass);
+                });
+            }
+        });
+
+        // disable current user comment from selection
+        $('#' + divVotePrefix + user.user_id).parent()
+        .removeClass(offStateClass)
+        .addClass(disableStateClass);
+    }
+
+    /**
+     * @memberof game
+     * @struct {setupStructure}
+     * @desc Validation for voting form "debateVote"
+     * */
+    $('#debateVote').validate({
+        submitHandler: function(){
+            selectedComment = $('#selectable').find('li').hasClass(onStateClass);
+            if (selectedComment){
+                selectedComment =  $('#selectable').find('li.ui-state-highlight');
+                idText = selectedComment.children().prop('id');
+                vote_id = parseInt(idText.substring(divVotePrefix.length));
+            }else{
+                app.dMessage("Error", "You must select a comment.");
+                return false;
+            }
+            //gather data
+            data = $(this.currentForm).serializeForm();
+            data.game_id = $('#game_id').val();
+            data.function = 'SVG';
+            data.counter = pollCounter = 0;
+            data.user_id = user.user_id;
+            data.vote_id = vote_id;
+            submitVote(data);
+        }
+    });
+
+    /**
+     * Submit Vote to database and start polling for winner data
+     * @method submitVote
+     * @param {object} data Form data including vote and current user id
+     */
+    function submitVote(data){
+        $.ajax({
+            url: app.engine,
+            data: data,
+            type: 'POST',
+            dataType: 'json',
+            desc: 'Vote Submission',
+            success: function(result){
+                if (!result.error){
+                    // reset counter for other uses
+                    pollCounter = 0;
+                    votePoll();
+                }else{
+                    app.dMessage(result.error, result.stm);
+                }
+            }
+        });
+    }
+
+    /**
+     * @method getVotePollData
+     * @returns {object} object object containing function name, id, game id, counter
+     */
+    function getVotePollData(){
+        return {
+            "function" : "GVG", // Get      votes from Game
+            'id' : 'votePoll',
+            'game_id' : $('#game_id').val(),
+            'counter' : pollCounter
+        };
+    }
+    /**
+     * Calls polling function with generated options
+     * @method votePoll
+     */
+    function votePoll(){
+        opts = {
+            getData: getVotePollData,
+            desc: 'Vote Polling',
+            strPending: 'Waiting on votes from {0} players ...',
+            completeFunc: loadWinner,
+            strInitial: 'Gathering player votes...'
+        };
+        poller(opts);
+    }
+
+    /**
+     * @method loadWinner
+     * @param {array} users Array of objects represent vote data including user info
+     * @returns {html} winnerDiv info
+     */
+    function loadWinner(users){
+        // disable game, enable parameter selection
+        toggleParams();
+
+        // show results
+        if (!$(resultPanel).is(':visible')){
+            $(resultPanel).toggle();
+        }
+
+        // build winner info
+        var obj = lib.getWinner(users);
+        strWinnerVote ='&lt;p>&lt;b>{0}&lt;/b>, with &lt;i>{1}&lt;/i> votes, won {2} credits&lt;/div>&lt;/p>';
+        strVote ='&lt;span>&lt;b>{0}&lt;/b>, with &lt;i>{1}&lt;/i> votes&lt;/span>';
+        var winner = $('&lt;div />')
+        .addClass('winnerDiv')
+        .append(
+            $('&lt;div />')
+            .addClass('winnerTitle')
+            .html('&lt;b>&lt;i>Winner&lt;/i>&lt;/b>'),
+            $('&lt;img src="/assets/avatars/' + obj.winner.avatar + '" class="avatar_large" />'),
+            $($.validator.format(strWinnerVote, [obj.winner.username, obj.winner.votes, obj.pot]))
+        );
+
+        // display winner info
+        $(resultPanel).click();
+        $('#results_panel').find("p").remove();
+        $('#results_footer')
+        .before( $('&lt;p />').append(winner));
+
+        // display the rest of the players
+        // $.each(users, function(){
+        //      if (this.user_id !== obj.winner.user_id){
+        //          $('#results_footer')
+        //              .before(
+        //                  $('&lt;div />')
+        //                      .append(
+        //                          $('&lt;img src="/assets/avatars/' + this.avatar + '" class="avatar_icon" />'),
+        //                          $($.validator.format(strVote, [this.username, this.votes]))
+        //                      )
+        //              );
+        //      }
+        // });
+
+        resTitle = (obj.winner.user_id == user.user_id) ? "Congratulations!!! You won!" : "Maybe next time";
+        $('#results_footer').html(resTitle);
+        $('#results_footer')
+        .append(
+            $('&lt;p />')
+            .append(
+                $('&lt;a />')
+                .prop('href', app.pages.game)
+                .html('Play Again?')
+            )
+        );
+    }
+
+
+
+    $('#LD').click(function(){
+        // load data to display function
+        $(gamePanel).click();
+        loadDebate(lib.sampleGameStartData);
+    });
+
+    $('#LC').click(function(){
+        // load data to display function
+        $(gamePanel).click();
+        $('#selectable').remove();
+        displayComments(lib.sampleCommentResultData[0].users);
+    });
+
+
+    $('#TGV').click(function(){
+        toggleGame();
+    });
+
+    $('#TW').click(function(){
+        if (!$(resultPanel).is(':visible')){
+            loadWinner(lib.sampleVoteResultData);
+        }else{
+            toggleParams();
+            $(resultPanel).toggle();
+            $(gamePanel).click();
+        }
+    });
+
+    function toggleParams(){
+        // disable/enable params
+        $(paramPanel).toggleClass('ui-state-disabled');
+        // disable/enable game
+        $(gamePanel).toggleClass('ui-state-disabled');
+    }
+
+    function toggleGame(){
+        $('#debate, .debateVote').toggle();
+    }
+
+    /**
+     * Game Clock instantiation
+     * @type {FlipClock}
+     */
+    gameClock = $('#game_timer').FlipClock({
+        autoStart: false,
+        countdown: true,
+        clockFace: 'MinuteCounter',
+        callbacks: {
+            stop: function(){
+                data = $('#gameUI').serializeForm();
+                data.user_id = user.user_id;
+                if (!gameSubmitted) submitGame(data);
+            }
+        }
+    });
+    /**
+     *  Wait Clock instantiation
+     * @type {FlipClock}
+     */
+    waitClock = $('#wait_timer').FlipClock(10,{
+        autoStart: false,
+        countdown: true,
+        clockFace: 'MinuteCounter',
+        callbacks: {
+            stop: function(){
+                $.unblockUI();
+                gameClock.start();
+                $('#gameWait').addClass('hidden');
+            }
+        }
+    });
+
+    function loadDebate(data, testing){
+        var runtimers = (testing !== undefined)
+        // set game id
+        $('#game_id').val(data.game_id);
+
+        // load player avatars
+        $('#players')
+        .empty()
+        .html("Players");
+
+        $.each(data.users, function(){
+            $('&lt;div />')
+            .attr({ id: this.username })
+            .appendTo('#players');
+            $('&lt;img  />')
+            .attr({
+                class: 'avatar',
+                src: app.getAvatar(this.avatar),
+                title: this.username
+            })
+            .appendTo('#' + this.username);
+            $('&lt;br />').appendTo('#players');
+        });
+
+        // disable waiting message
+        $('#game_panel').unblock();
+
+        //set game title(question)/wager
+        $("#question")
+        .html(data.question)
+        .append(
+            $('&lt;h5>')
+            // .addClass('ui-state-active')
+            .html("(Wager: " + data.wager + " credit".pluralize(data.wager) + ")")
+        );
+
+        if (runtimers){
+            // set clock based on time limit parameter
+            gameClock.setTime(data.time);
+            // show waitclock
+            $('#gameWait').removeClass('hidden');
+            $.blockUI({message: $('#gameWait'), css:{ width: '305px'}});
+            waitClock.start();
+        }
+    }
+
+    $('#cancel').click(function(){
+        $('#game_panel').unblock();
+        // enable/disable appropriate panels
+        toggleParams();
+        openAccordionPanel('last');
+        cancelGame().success(function(data){
+            // cancel poll
+            clearTimeout(timeout);
+            if (!data.error){
+                func = function(){
+                    params.counter = pollCounter = 0;
+                    $(this).dialog('close');
+                };
+                msgOpt = {
+                    buttons: {
+                        Yes: function(){
+                            getGame();
+                            func();
+                        },
+                        No: func
+                    }
+                };
+                app.dMessage(
+                    "Alert",
+                    'Cancellation Confirmed&lt;p>Retry?&lt;/p>',
+                    msgOpt
+                );
+            }else{
+                app.dMessage(data.error, data.stm);
+            }
+        });
+    });
+
+    function cancelGame(callback){
+        params.function = 'CG';
+        params.id = 'cancelGame';
+        return $.ajax({
+            url: app.engine,
+            data: params,
+            type: 'POST',
+            dataType: 'json',
+            desc: 'Game Cancellation'
+        });
+    }
+
+    function openAccordionPanel(position) {
+        var current = app.accordion.accordion("option","active");
+        maximum = app.accordion.find("h3").length;
+        if (position === 'next'){
+            position = current+1 === maximum ? 0 : current+1;
+        }else{
+            position = current-1 &lt; 0 ? 0 : current-1;
+        }
+        app.accordion.accordion("option","active",position);
+    }
+
+
+    // load question box with values based on category/subcategory
+    function primeQBox(catID){
+        // destination selectmenu
+        q_select = '#paramQuestions';
+        // reset questions list
+        $(q_select)
+        .empty()
+        .selectmenu('destroy')
+        .selectmenu({width: '100%', style: 'dropdown'})
+        .append(new Option("None", ""));
+
+        // retrieve and load questions for selected id
+        app.getCatQuestions(catID, q_select);
+    }
+
+    // set a watch for additions/removal on the dom for select boxes (not including template)
+    $("select[id*=Category]:not([id*=temp])")
+    .livequery(function(){
+        // id = $(this).prop('id');
+        id = '#' + $(this)[0].form.id + " " +  $(this).prop('id');
+        // add validation
+        $(this).closest('form').validate();
+        $(this).rules("add", { selectNotEqual : "" });
+
+        // selectmenu options
+        mnuOpts = {
+            change: function(){
+                // load appropriate questions for selection
+                primeQBox($(this).val());
+
+                // validate select
+                $(this).closest('form').validate().element(this);
+                //  bind change event to all select menus to enable subcategory menu selection
+                boolSubs = $(this).siblings('input').prop("checked");
+
+                // get clones if present
+                clones = $(this).parent().siblings('.clone');
+                hasClones = clones.length > 0;
+                // remove clones
+                if (hasClones){
+                    // kill all clones below current check
+                    $.each(clones, function(){
+                        $(this).remove();
+                    });
+                }
+
+                // if sub-categories are requested
+                if (boolSubs) app.subCheck($(this));
+            }
+        };
+        settings = $.extend({}, app.selectMenuOpt, mnuOpts);
+        $(this).selectmenu(settings);
+    });
+
+    // set watch for additions/removal on the dom for checkboxes (not including template)
+    $("input[id*=CategoryChk]:not([id*=temp])")
+    .livequery(function(){
+        $(this)
+        .change(function(event){
+            event.stopPropagation();
+            if($(this).is(':checked')){
+                var select = $(this).siblings('select');
+                app.subCheck(select);
+            }else{
+                // load appropriate questions for selection
+                primeQBox("#" + $(this).siblings('select').prop('id'));
+
+                // get all p tags that are not the original and do not contain the submit button
+                cloneP = $(this).parent().siblings('.clone');
+                // kill all clones below current check
+                $.each(cloneP, function(){
+                    $(this).remove();
+                });
+            }
+        }
+               );
+    });
+
+
+    /* Facebook Code */
+
+
+
+
+
+
+    window.fbAsyncInit = function() {
+        FB.init({
+            appId      : '1518603065100165',
+            xfbml      : true,
+            version    : 'v2.5'
+        });
+    };
+    (function(d, s, id) {
+        var js, fjs = d.getElementsByTagName(s)[0];
+        if (d.getElementById(id)) return;
+        js = d.createElement(s); js.id = id;
+        js.src = "//connect.facebook.net/en_US/sdk.js#xfbml=1&amp;version=v2.5&amp;appId=1518603065100165";
+        fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));
+});
+</pre>
+    </article>
+</section>
+
+
+
+
+
+		</div>
+	</div>
+
+	<div class="clearfix"></div>
+
+	
+
+</div>
+</div>
+
+<div class="modal fade" id="searchResults">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">Search results</h4>
+      </div>
+      <div class="modal-body"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div>
+
+<footer>
+
+
+<span class="jsdoc-message">
+	Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a>
+	
+		on Sun Jan 24th 2016
+	
+	using the <a href="https://github.com/docstrap/docstrap">DocStrap template</a>.
+</span>
+</footer>
+
+<script src="scripts/docstrap.lib.js"></script>
+<script src="scripts/toc.js"></script>
+<script type="text/javascript" src="scripts/fulltext-search-ui.js"></script>
+
+<script>
+$( function () {
+	$( "[id*='$']" ).each( function () {
+		var $this = $( this );
+
+		$this.attr( "id", $this.attr( "id" ).replace( "$", "__" ) );
+	} );
+
+	$( ".tutorial-section pre, .readme-section pre" ).each( function () {
+		var $this = $( this );
+
+		var example = $this.find( "code" );
+		exampleText = example.html();
+		var lang = /{@lang (.*?)}/.exec( exampleText );
+		if ( lang && lang[1] ) {
+			exampleText = exampleText.replace( lang[0], "" );
+			example.html( exampleText );
+			lang = lang[1];
+		} else {
+			var langClassMatch = example.parent()[0].className.match(/lang\-(\S+)/);
+			lang = langClassMatch ? langClassMatch[1] : "javascript";
+		}
+
+		if ( lang ) {
+
+			$this
+			.addClass( "sunlight-highlight-" + lang )
+			.addClass( "linenums" )
+			.html( example.html() );
+
+		}
+	} );
+
+	Sunlight.highlightAll( {
+		lineNumbers : true,
+		showMenu : true,
+		enableDoclinks : true
+	} );
+
+	$.catchAnchorLinks( {
+        navbarOffset: 10
+	} );
+	$( "#toc" ).toc( {
+		anchorName  : function ( i, heading, prefix ) {
+			var id = $( heading ).attr( "id" );
+			return id && id.replace(/\~/g, '-inner-').replace(/\./g, '-static-') || ( prefix + i );
+		},
+		selectors   : "#toc-content h1,#toc-content h2,#toc-content h3,#toc-content h4",
+		showAndHide : false,
+		smoothScrolling: true
+	} );
+
+	$( "#main span[id^='toc']" ).addClass( "toc-shim" );
+	$( '.dropdown-toggle' ).dropdown();
+
+    $( "table" ).each( function () {
+      var $this = $( this );
+      $this.addClass('table');
+    } );
+
+} );
+</script>
+
+
+
+<!--Navigation and Symbol Display-->
+
+<script>
+	$( function () {
+		$( '#main' ).localScroll( {
+			offset : { top : 60 } //offset by the height of your header (give or take a few px, see what works for you)
+		} );
+		$( "dt.name" ).each( function () {
+			var $this = $( this ).find("h4");
+			var icon = $( "<i/>" ).addClass( "icon-plus-sign" ).addClass( "pull-right" ).addClass( "icon-white" );
+			var dt = $(this);
+			var children = dt.next( "dd" );
+
+			dt.prepend( icon ).css( {cursor : "pointer"} );
+			dt.addClass( "member-collapsed" ).addClass( "member" );
+
+
+			children.hide();
+
+			dt.children().on( "click", function () {
+				children = dt.next( "dd" );
+				children.slideToggle( "fast", function () {
+
+					if ( children.is( ":visible" ) ) {
+						icon.addClass( "icon-minus-sign" ).removeClass( "icon-plus-sign" ).removeClass( "icon-white" );
+						dt.addClass( "member-open" ).animate( "member-collapsed" );
+					} else {
+						icon.addClass( "icon-plus-sign" ).removeClass( "icon-minus-sign" ).addClass( "icon-white" );
+						dt.addClass( "member-collapsed" ).removeClass( "member-open" );
+					}
+				} );
+			} );
+
+		} );
+	} );
+</script>
+
+
+<!--Google Analytics-->
+
+
+<script type="text/javascript">
+	$(document).ready(function() {
+		SearcherDisplay.init();
+	});
+</script>
+
+</body>
+</html>

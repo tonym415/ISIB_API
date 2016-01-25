@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>ISIB API Source: lib/pagesLib/appLib.js</title>
+
+	<!--[if lt IE 9]>
+	<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+	<![endif]-->
+	<link type="text/css" rel="stylesheet" href="styles/sunlight.dark.css">
+
+	<link type="text/css" rel="stylesheet" href="styles/site.superhero.css">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-default navbar-fixed-top navbar-inverse">
+<div class="container">
+	<div class="navbar-header">
+		<a class="navbar-brand" href="index.html">ISIB API</a>
+		<button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#topNavigation">
+			<span class="icon-bar"></span>
+			<span class="icon-bar"></span>
+			<span class="icon-bar"></span>
+        </button>
+	</div>
+	<div class="navbar-collapse collapse" id="topNavigation">
+		<ul class="nav navbar-nav">
+			
+			<li class="dropdown">
+				<a href="namespaces.list.html" class="dropdown-toggle" data-toggle="dropdown">Namespaces<b class="caret"></b></a>
+				<ul class="dropdown-menu ">
+					<li><a href="app_appLib.html">app/appLib</a></li><li><a href="game_gameLib.html">game/gameLib</a></li>
+				</ul>
+			</li>
+			
+			<li class="dropdown">
+				<a href="modules.list.html" class="dropdown-toggle" data-toggle="dropdown">Modules<b class="caret"></b></a>
+				<ul class="dropdown-menu ">
+					<li><a href="module-app.html">app</a></li><li><a href="module-feedback.html">feedback</a></li><li><a href="module-game.html">game</a></li><li><a href="module-signup.html">signup</a></li>
+				</ul>
+			</li>
+			
+			<li class="dropdown">
+				<a href="events.list.html" class="dropdown-toggle" data-toggle="dropdown">Events<b class="caret"></b></a>
+				<ul class="dropdown-menu ">
+					<li><a href="app.html#.event:Navigationclick">app.event:Navigation click</a></li><li><a href="game.html#.event:Gamesubmissionof%2522gameUI%2522">game.event:Game submission of "gameUI"</a></li>
+				</ul>
+			</li>
+			
+			<li class="dropdown">
+				<a href="global.html" class="dropdown-toggle" data-toggle="dropdown">Global<b class="caret"></b></a>
+				<ul class="dropdown-menu ">
+					<li><a href="global.html#between">between</a></li><li><a href="global.html#capitalize">capitalize</a></li><li><a href="global.html#pluralize">pluralize</a></li><li><a href="global.html#prefix">prefix</a></li><li><a href="global.html#serializeForm">serializeForm</a></li><li><a href="global.html#setDefaults">setDefaults</a></li><li><a href="global.html#toMMSS">toMMSS</a></li>
+				</ul>
+			</li>
+			
+		</ul>
+		<div class="col-sm-3 col-md-3">
+            <form class="navbar-form" role="search">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="Search" name="q" id="search-input">
+                    <div class="input-group-btn">
+                        <button class="btn btn-default" id="search-submit"><i class="glyphicon glyphicon-search"></i></button>
+                    </div>
+                </div>
+            </form>
+        </div>
+	</div>
+
+</div>
+</div>
+
+
+<div class="container" id="toc-content">
+<div class="row">
+
+	
+	<div class="col-md-12">
+	
+		<div id="main">
+			
+
+		<h1 class="page-title">Source: lib/pagesLib/appLib.js</h1>
+    
+<section>
+    <article>
+        <pre
+            class="sunlight-highlight-javascript linenums">/**
+* @fileOverview
+*Library For: App
+*Contents:
+*-    navigation pages hash
+*-    skill levels hash
+*-    Rules text
+*-    JQuery addons
+*-    JS prototypes
+*
+* When the module is loaded it will be referred to as "lib"
+* @author Tony Moses
+* @version 0.1
+* @namespace app/appLib
+* @returns {Object} Returns library of config vars and functions
+*/
+
+define(['jquery','tooltipster'], function($) {
+    /**
+     * @name app/appLib#navPages
+     * @readonly
+     * @prop {string} key navPages.key
+     * @prop {string} value navPages.value
+     * @desc
+     * For usage example see:
+     * - [Navigation Bar]{@link module:app~loginNavBar} &lt;a href='app.js.html#sunlight-1-line-348'> (app.js line 348)&lt;/a>
+     * @example
+     * // returns "index.html
+     * lib.navPages.home;
+     * @returns {string} Returns file name for alias
+    */
+    var navPages = {
+        'home' : 'index.html',
+        'game' : 'game.html',
+        'feedback': 'feedback.html',
+        'profile': 'profile.html',
+        'about': 'about.html',
+        'admin': 'admin.html'
+    };
+
+    /**
+     * @name app/appLib#skillLevels
+     * @readonly
+     * @type {array} skillLevels[0]
+     * @prop {string} title
+     * @prop {string} description
+     * @desc This is an array of objects containing skill title/desc. This object will be used to
+     * refer to site pages and helps preserve DRY method.
+     * For usage example see: {@link module:app~getLevelName} &lt;a href='app.js.html#sunlight-1-line-407'> (app.js line 104)&lt;/a>
+     * @returns {string} Returns file name for alias
+    */
+    var skillLevels = [{
+            "title" : "Blowhard",
+            "description" : "Look who hasn't even won eleven games....."
+        },{
+            "title" : "Bigmouth",
+            "description" : "Get some games under you belt and we'll talk"
+        },{
+            "title" : "Conversationalist",
+            "description" : "Looks like someone is making money"
+        },{
+            "title" : "Commentator",
+            "description" : "Gaining momentum"
+        },{
+            "title" : "Scholar",
+            "description" : "Look who can argue!"
+        },{
+            "title" : "Lecturer",
+            "description" : "Debater Spectacular"
+        },{
+            "title" : "Advocate",
+            "description" : "You know your stuff"
+        },{
+            "title" : "Orator",
+            "description" : "Basically, Winston Churchill."
+        },{
+            "title" : "Elocutionist",
+            "description" : "Straight winning"
+        },{
+            "title" : "Rhetorician",
+            "description" : "Apex"
+        }
+    ];
+
+    // rules div
+    /**
+     * @var tplRules
+     * @memberof app/appLib
+     * @desc template for site rules
+     * @todo Move template string to site template html
+     */
+    var tplRules = "&lt;div class='agreement_text' style='display:none;'> \
+                    &lt;div class='rules'> \
+                        &lt;h2>Rules and Regulations&lt;/h2> \
+                        &lt;ol> \
+                            &lt;li> \
+                                While &lt;b>&lt;i>Isaiditbest&lt;/b>&lt;/i> allows great leniency regarding freedom of speech while debating, Isaiditbest reserves the right to suspend or revoke membership to any member for anything that &lt;b>&lt;i>Isaiditbest&lt;/b>&lt;/i> determines is hate speech. Similarly, any intimidating language towards other members is also strictly prohibited. By using this website, all users acknowledge that Wesaiditbest retains the right to make these decisions regarding who may debate on our website. \
+                            &lt;/li> \
+                            &lt;li> \
+                                Group coordination, where there is a prearranged agreement between multiple members to vote for each other, is strictly prohibited.&lt;br /> \
+                                &lt;p> \
+                                    By using this website, all users acknowledge that any attempt to perform these actions will result in a ban and potential forfeit of remaining credit, which may be used only for the purposes of reimbursing potentially harmed contestants. Any use of this website comes with the knowledge that Isaiditbest retains the right to determine whether group coordination occurred and take these listed actions. Any customers facing potential suspension or credit forfeit will be given a minimum of 72 hours to appeal our decision. By using this website, all users give their consent to &lt;b>&lt;i>Isaiditbest&lt;/b>&lt;/i> to determine if group coordination occurred and undertake the actions mentioned in this document. \
+                                &lt;/p>&lt;br /> \
+                                &lt;p> \
+                                    &lt;b>&lt;i>Isaiditbest&lt;/i>&lt;/b> retains the right to make any and all decisions regarding who may use this website and all game decisions, including retroactive game decisions in the case that group coordination is believed to have occurred. By signing up and participating in games, I agree to these terms. \
+                                &lt;/p> \
+                            &lt;/li> \
+                        &lt;/ol> \
+                        &lt;br> \
+                        &lt;p> \
+                            &lt;a class='agreement_close' href='#'>Close this dialog&lt;/a> \
+                        &lt;/p> \
+                    &lt;/div>";
+
+
+    /**
+     * @memberof app/appLib
+     * @var txtFooter
+     * @desc Visible footer text
+     */
+    var txtFooter = "Use of this website constitutes acceptance of the ISaidItBest \
+        &lt;a class=\"agreement\" href=\"#\">Rules Agreement&lt;/a>";
+
+    /**
+     * @global
+     * @method tooltipster.setDefaults
+     * @desc Set default values for tooltipster plugin
+     */
+    $.fn.tooltipster('setDefaults',{
+        trigger: 'custom',
+        onlyOne: false,
+        positionTracker: true,
+        position: 'right',
+        updateAnimation: false,
+        animation: 'swing',
+        positionTrackerCallback: function(){
+            this.hide();
+        }
+    });
+
+    /**
+     * @global
+     * @method between
+     * @desc  Extends javascript Number to have a between function
+     * The function takes number and returns if that number is between the two
+     * parameters
+     * @param {number} min Minumum comparator
+     * @param {number} max Maximum comparator
+     * @example
+     * //retuns true
+     * 42.between(40, 50);
+     * @return {Boolean} Boolean
+     */
+     Number.prototype.between = function(min, max){
+         return this.valueOf() >= min &amp;&amp; this.valueOf() &lt;= max;
+     };
+
+     /**
+       * @global
+     * @method pluralize
+     * @desc  Extends javascript String
+     * The function takes string and returns pluralized version based on count
+     * @param {number} count Thec count of items to base pluralization on
+     * @param {string} [plural=s] Plural string
+     * @example
+     * //retuns cats
+     * cat.pluralize(10);
+     * @return {String} Pluralized string
+     */
+    String.prototype.pluralize = function(count, plural){
+        if (plural == null){
+            plural = this + 's';
+        }
+        return (count == 1 ? this : plural);
+    };
+
+    /**
+     * @global
+     * @method capitalize
+     * @desc  Extends javascript String
+     * The function takes string and returns capitalized string
+     * @example
+     * //returns Error
+     * var status = "error";
+     * status.capitalize();
+     * @return {String} capitalized string
+     */
+    String.prototype.capitlize = function(){
+        return this.toLowerCase().replace( /\b\w/g, function(m){
+            return m.toUpperCase();
+        });
+    };
+
+    /**
+     * @global
+     * @method prefix
+     * @desc  Extends javascript String
+     * The function finds a prefix of a string based on a separator string
+     * @param {string} [separator=_] String to mark prefix
+     * @example
+     * //retuns sub
+     * var id = "sub_Category"
+     * status.prefix();
+     * @return {String} prefix of string
+     */
+    String.prototype.prefix = function (separator) {
+        separator = (separator === undefined) ? '_' : separator;
+        return this.substring(0, this.indexOf(separator) + 1);
+    };
+
+    /**
+     * @global
+     * @method serializeForm
+     * @desc  Extends JQuery fn
+     * Converts form data to js object
+     * @example
+     * //retuns form in js object
+     * @return {object} formdata
+     */
+    $.fn.serializeForm = function() {
+        var o = {"id": this.prop('id')};
+
+        var a = this.serializeArray();
+        $.each(a, function() {
+            if (o[this.name] !== undefined) {
+                if (!o[this.name].push) {
+                    o[this.name] = [o[this.name]];
+                }
+                o[this.name].push(this.value || '');
+            } else {
+                o[this.name] = this.value || '';
+            }
+        });
+        return o;
+    };
+
+    /**
+     * @global
+     * @method toMMSS
+     * @desc  Extends Javascript String
+     * Converts seconds as string/int to HH:MM:SS
+     * @example
+     * //returns
+     * @return {string} string
+     */
+    String.prototype.toMMSS = function () {
+        var sec_num = parseInt(this, 10); // don't forget the second param
+        var hours   = Math.floor(sec_num / 3600);
+        var minutes = Math.floor((sec_num - (hours * 3600)) / 60);
+        var seconds = sec_num - (hours * 3600) - (minutes * 60);
+
+        // if (hours   &lt; 10) {hours   = "0"+hours;}
+        if (minutes &lt; 10) {minutes = "0"+minutes;}
+        if (seconds &lt; 10) {seconds = "0"+seconds;}
+        // var time    = hours+':'+minutes+':'+seconds;
+        var time    = minutes+':'+seconds;
+        return time;
+    };
+
+    return {
+        navPages: navPages,
+        skillLevels: skillLevels,
+        /**
+        * @method getFooterText
+        * @memberof app/appLib
+        * @see {@link txtFooter}
+        * @see {@link app/appLogin~tplRules}
+        */
+        getFooterText: function(){ return txtFooter + tplRules;}
+    }
+});
+</pre>
+    </article>
+</section>
+
+
+
+
+
+		</div>
+	</div>
+
+	<div class="clearfix"></div>
+
+	
+
+</div>
+</div>
+
+<div class="modal fade" id="searchResults">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">Search results</h4>
+      </div>
+      <div class="modal-body"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div>
+
+<footer>
+
+
+<span class="jsdoc-message">
+	Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a>
+	
+		on Sun Jan 24th 2016
+	
+	using the <a href="https://github.com/docstrap/docstrap">DocStrap template</a>.
+</span>
+</footer>
+
+<script src="scripts/docstrap.lib.js"></script>
+<script src="scripts/toc.js"></script>
+<script type="text/javascript" src="scripts/fulltext-search-ui.js"></script>
+
+<script>
+$( function () {
+	$( "[id*='$']" ).each( function () {
+		var $this = $( this );
+
+		$this.attr( "id", $this.attr( "id" ).replace( "$", "__" ) );
+	} );
+
+	$( ".tutorial-section pre, .readme-section pre" ).each( function () {
+		var $this = $( this );
+
+		var example = $this.find( "code" );
+		exampleText = example.html();
+		var lang = /{@lang (.*?)}/.exec( exampleText );
+		if ( lang && lang[1] ) {
+			exampleText = exampleText.replace( lang[0], "" );
+			example.html( exampleText );
+			lang = lang[1];
+		} else {
+			var langClassMatch = example.parent()[0].className.match(/lang\-(\S+)/);
+			lang = langClassMatch ? langClassMatch[1] : "javascript";
+		}
+
+		if ( lang ) {
+
+			$this
+			.addClass( "sunlight-highlight-" + lang )
+			.addClass( "linenums" )
+			.html( example.html() );
+
+		}
+	} );
+
+	Sunlight.highlightAll( {
+		lineNumbers : true,
+		showMenu : true,
+		enableDoclinks : true
+	} );
+
+	$.catchAnchorLinks( {
+        navbarOffset: 10
+	} );
+	$( "#toc" ).toc( {
+		anchorName  : function ( i, heading, prefix ) {
+			var id = $( heading ).attr( "id" );
+			return id && id.replace(/\~/g, '-inner-').replace(/\./g, '-static-') || ( prefix + i );
+		},
+		selectors   : "#toc-content h1,#toc-content h2,#toc-content h3,#toc-content h4",
+		showAndHide : false,
+		smoothScrolling: true
+	} );
+
+	$( "#main span[id^='toc']" ).addClass( "toc-shim" );
+	$( '.dropdown-toggle' ).dropdown();
+
+    $( "table" ).each( function () {
+      var $this = $( this );
+      $this.addClass('table');
+    } );
+
+} );
+</script>
+
+
+
+<!--Navigation and Symbol Display-->
+
+<script>
+	$( function () {
+		$( '#main' ).localScroll( {
+			offset : { top : 60 } //offset by the height of your header (give or take a few px, see what works for you)
+		} );
+		$( "dt.name" ).each( function () {
+			var $this = $( this ).find("h4");
+			var icon = $( "<i/>" ).addClass( "icon-plus-sign" ).addClass( "pull-right" ).addClass( "icon-white" );
+			var dt = $(this);
+			var children = dt.next( "dd" );
+
+			dt.prepend( icon ).css( {cursor : "pointer"} );
+			dt.addClass( "member-collapsed" ).addClass( "member" );
+
+
+			children.hide();
+
+			dt.children().on( "click", function () {
+				children = dt.next( "dd" );
+				children.slideToggle( "fast", function () {
+
+					if ( children.is( ":visible" ) ) {
+						icon.addClass( "icon-minus-sign" ).removeClass( "icon-plus-sign" ).removeClass( "icon-white" );
+						dt.addClass( "member-open" ).animate( "member-collapsed" );
+					} else {
+						icon.addClass( "icon-plus-sign" ).removeClass( "icon-minus-sign" ).addClass( "icon-white" );
+						dt.addClass( "member-collapsed" ).removeClass( "member-open" );
+					}
+				} );
+			} );
+
+		} );
+	} );
+</script>
+
+
+<!--Google Analytics-->
+
+
+<script type="text/javascript">
+	$(document).ready(function() {
+		SearcherDisplay.init();
+	});
+</script>
+
+</body>
+</html>
